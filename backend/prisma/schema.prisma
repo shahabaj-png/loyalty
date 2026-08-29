@@ -1,0 +1,409 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// USER & AUTH
+// ============================================================
+
+model User {
+  id              String          @id @default(uuid())
+  email           String          @unique
+  passwordHash    String
+  phone           String?
+  firstName       String
+  lastName        String
+  avatarUrl       String?
+  role            UserRole        @default(CUSTOMER)
+  tier            TierLevel       @default(BRONZE)
+  totalPoints     Int             @default(0)
+  availablePoints Int             @default(0)
+  lifetimePoints  Int             @default(0)
+  referralCode    String          @unique
+  referredBy      String?
+  identityStatus  IdentityStatus  @default(PENDING)
+  faceEnrolled    Boolean         @default(false)
+  faceVector      Bytes?
+  streakDays      Int             @default(0)
+  lastCheckIn     DateTime?
+  loginAttempts   Int             @default(0)
+  lockedUntil     DateTime?
+  birthday        DateTime?
+  metadata        Json?
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  transactions    PointTransaction[]
+  rewards         UserReward[]
+  badges          UserBadge[]
+  challenges      UserChallenge[]
+  checkIns        CheckIn[]
+  notifications   Notification[]
+  referrals       Referral[]      @relation("referrer")
+  referredUsers   Referral[]      @relation("referee")
+  identityDocs    IdentityDocument[]
+  refreshTokens   RefreshToken[]
+  spinHistory     SpinWheelHistory[]
+
+  @@index([email])
+  @@index([referralCode])
+  @@index([tier])
+  @@index([lifetimePoints])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+// ============================================================
+// POINTS & TRANSACTIONS
+// ============================================================
+
+model PointTransaction {
+  id          String              @id @default(uuid())
+  userId      String
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        PointTransactionType
+  amount      Int
+  balance     Int
+  description String
+  source      String
+  metadata    Json?
+  expiresAt   DateTime?
+  createdAt   DateTime            @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([source])
+}
+
+model PointRule {
+  id              String    @id @default(uuid())
+  name            String
+  event           String
+  basePoints      Int
+  multiplierField String?
+  maxPoints       Int?
+  cooldownMinutes Int?
+  conditions      Json?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([event])
+}
+
+// ============================================================
+// REWARDS
+// ============================================================
+
+model Reward {
+  id          String      @id @default(uuid())
+  name        String
+  description String
+  imageUrl    String?
+  pointsCost  Int
+  category    String
+  minTier     TierLevel   @default(BRONZE)
+  stock       Int?
+  isActive    Boolean     @default(true)
+  validFrom   DateTime    @default(now())
+  validUntil  DateTime?
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  userRewards UserReward[]
+
+  @@index([category])
+  @@index([minTier])
+  @@index([isActive])
+}
+
+model UserReward {
+  id             String       @id @default(uuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rewardId       String
+  reward         Reward       @relation(fields: [rewardId], references: [id])
+  status         RewardStatus @default(CLAIMED)
+  redemptionCode String?      @unique
+  claimedAt      DateTime     @default(now())
+  redeemedAt     DateTime?
+  expiresAt      DateTime?
+
+  @@index([userId])
+  @@index([rewardId])
+  @@index([status])
+}
+
+// ============================================================
+// GAMIFICATION
+// ============================================================
+
+model Badge {
+  id           String      @id @default(uuid())
+  name         String      @unique
+  description  String
+  iconUrl      String
+  category     String
+  criteria     Json
+  pointsReward Int         @default(0)
+  rarity       BadgeRarity @default(COMMON)
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  userBadges   UserBadge[]
+
+  @@index([category])
+  @@index([rarity])
+}
+
+model UserBadge {
+  id       String   @id @default(uuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId  String
+  badge    Badge    @relation(fields: [badgeId], references: [id])
+  earnedAt DateTime @default(now())
+  progress Float    @default(0)
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+}
+
+model Challenge {
+  id              String        @id @default(uuid())
+  name            String
+  description     String
+  type            ChallengeType
+  pointsReward    Int
+  criteria        Json
+  startsAt        DateTime
+  endsAt          DateTime
+  isActive        Boolean       @default(true)
+  maxParticipants Int?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  participants    UserChallenge[]
+
+  @@index([type])
+  @@index([isActive])
+  @@index([startsAt, endsAt])
+}
+
+model UserChallenge {
+  id          String          @id @default(uuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId String
+  challenge   Challenge       @relation(fields: [challengeId], references: [id])
+  status      ChallengeStatus @default(ACTIVE)
+  progress    Float           @default(0)
+  completedAt DateTime?
+  joinedAt    DateTime        @default(now())
+
+  @@unique([userId, challengeId])
+  @@index([userId])
+  @@index([status])
+}
+
+model CheckIn {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locationId   String?
+  pointsEarned Int
+  streakDay    Int
+  streakBonus  Int      @default(0)
+  latitude     Float?
+  longitude    Float?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model SpinWheelHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prize     String
+  points    Int
+  spunAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([spunAt])
+}
+
+// ============================================================
+// IDENTITY & VERIFICATION
+// ============================================================
+
+model IdentityDocument {
+  id             String         @id @default(uuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentType   String
+  documentNumber String?
+  issuingCountry String?
+  status         IdentityStatus @default(PENDING)
+  verificationId String?
+  ocrData        Json?
+  fileUrl        String?
+  verifiedAt     DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime       @default(now())
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      String
+  data      Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ============================================================
+// REFERRALS
+// ============================================================
+
+model Referral {
+  id         String   @id @default(uuid())
+  referrerId String
+  referrer   User     @relation("referrer", fields: [referrerId], references: [id])
+  refereeId  String
+  referee    User     @relation("referee", fields: [refereeId], references: [id])
+  status     String   @default("PENDING")
+  bonusPaid  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@unique([referrerId, refereeId])
+  @@index([referrerId])
+  @@index([refereeId])
+}
+
+// ============================================================
+// WEBHOOKS
+// ============================================================
+
+model WebhookEndpoint {
+  id        String   @id @default(uuid())
+  url       String
+  events    String[]
+  secret    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  logs      WebhookLog[]
+
+  @@index([isActive])
+}
+
+model WebhookLog {
+  id         String   @id @default(uuid())
+  endpointId String
+  endpoint   WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  event      String
+  payload    Json
+  statusCode Int?
+  response   String?
+  attempts   Int      @default(0)
+  sentAt     DateTime @default(now())
+
+  @@index([endpointId])
+  @@index([event])
+  @@index([sentAt])
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  MANAGER
+  API_CLIENT
+}
+
+enum TierLevel {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum PointTransactionType {
+  EARN
+  REDEEM
+  BONUS
+  EXPIRE
+  ADJUSTMENT
+  REFERRAL
+}
+
+enum ChallengeType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  SPECIAL
+  STREAK
+}
+
+enum ChallengeStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  LOCKED
+}
+
+enum RewardStatus {
+  AVAILABLE
+  CLAIMED
+  REDEEMED
+  EXPIRED
+}
+
+enum IdentityStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  EXPIRED
+}
+
+enum BadgeRarity {
+  COMMON
+  UNCOMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
