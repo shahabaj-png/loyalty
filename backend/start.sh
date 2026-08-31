@@ -1,5 +1,7 @@
 #!/bin/sh
 
+export DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/loyalty}"
+
 if [ -d "backend" ]; then
   cd backend
 fi
