@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "chmod +x start.sh && ./start.sh",
+    "startCommand": "npm run start:railway",
     "restartPolicyType": "ON_FAILURE"
   }
 }
