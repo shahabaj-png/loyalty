@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "npm run start:railway",
+    "startCommand": "node dist/main",
     "restartPolicyType": "ON_FAILURE"
   }
 }
