@@ -12,6 +12,8 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { CommonModule } from './common/common.module';
 
+import { AppController } from './app.controller';
+
 @Module({
   imports: [
     // Rate limiting
@@ -41,5 +43,6 @@ import { CommonModule } from './common/common.module';
     WebhooksModule,
     AnalyticsModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}
