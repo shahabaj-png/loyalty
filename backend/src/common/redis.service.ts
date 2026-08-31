@@ -6,7 +6,27 @@ export class RedisService implements OnModuleDestroy {
   private client: Redis;
 
   constructor() {
-    this.client = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+    const redisUrl = process.env.REDIS_URL || process.env.REDIS_PRIVATE_URL;
+    if (redisUrl) {
+      this.client = new Redis(redisUrl, { maxRetriesPerRequest: null });
+    } else if (process.env.REDISHOST || process.env.REDIS_HOST) {
+      this.client = new Redis({
+        host: process.env.REDISHOST || process.env.REDIS_HOST,
+        port: parseInt(process.env.REDISPORT || process.env.REDIS_PORT || '6379'),
+        password: process.env.REDISPASSWORD || process.env.REDIS_PASSWORD || undefined,
+        maxRetriesPerRequest: null,
+      });
+    } else {
+      this.client = new Redis('redis://127.0.0.1:6379', {
+        lazyConnect: true,
+        maxRetriesPerRequest: null,
+        enableOfflineQueue: false,
+      });
+    }
+
+    this.client.on('error', (err) => {
+      console.warn('⚠️ Redis Warning:', err.message);
+    });
   }
 
   async onModuleDestroy() {
