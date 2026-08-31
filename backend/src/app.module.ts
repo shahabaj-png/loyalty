@@ -22,7 +22,12 @@ import { CommonModule } from './common/common.module';
 
     // Job queues
     BullModule.forRoot({
-      redis: { host: process.env.REDIS_HOST || 'localhost', port: parseInt(process.env.REDIS_PORT || '6379') },
+      url: process.env.REDIS_URL || process.env.REDIS_PRIVATE_URL,
+      redis: (process.env.REDIS_URL || process.env.REDIS_PRIVATE_URL) ? undefined : {
+        host: process.env.REDIS_HOST || process.env.REDISHOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || process.env.REDISPORT || '6379'),
+        password: process.env.REDIS_PASSWORD || process.env.REDISPASSWORD || undefined,
+      },
     }),
 
     // Feature modules
