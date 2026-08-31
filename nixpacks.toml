@@ -2,13 +2,13 @@
 nixPkgs = ["nodejs_20", "openssl"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["cd backend && npm ci"]
 
 [phases.build]
-cmds = ["DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/loyalty\" npx prisma generate", "npm run build"]
+cmds = ["cd backend && npx prisma generate && npm run build"]
 
 [start]
-cmd = "chmod +x start.sh && ./start.sh"
+cmd = "cd backend && npm run start:railway"
 
 [variables]
 NODE_ENV = "production"
