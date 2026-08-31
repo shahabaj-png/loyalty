@@ -6,6 +6,9 @@ import * as compression from 'compression';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  if (!process.env.DATABASE_URL) {
+    process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/loyalty?schema=public';
+  }
   const app = await NestFactory.create(AppModule);
 
   // Security
