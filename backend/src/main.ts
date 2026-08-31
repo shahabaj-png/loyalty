@@ -15,7 +15,9 @@ async function bootstrap() {
   app.use(helmet());
   app.use(compression());
   app.enableCors({
-    origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:5173'],
+    origin: (process.env.CORS_ORIGINS && process.env.CORS_ORIGINS !== '*')
+      ? process.env.CORS_ORIGINS.split(',')
+      : true,
     credentials: true,
   });
 
