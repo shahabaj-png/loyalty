@@ -1,1 +1,1 @@
-web: node backend/dist/main
+web: sh start.sh

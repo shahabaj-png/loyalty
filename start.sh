@@ -1,19 +1,27 @@
 #!/bin/sh
 
-if [ -d "backend" ]; then
+echo "=== Dynamic Node Launcher ==="
+
+if [ -f "dist/main.js" ]; then
+  echo "-> Launching node dist/main.js"
+  exec node dist/main.js
+elif [ -f "backend/dist/main.js" ]; then
+  echo "-> Launching node backend/dist/main.js"
+  exec node backend/dist/main.js
+elif [ -d "backend" ]; then
   cd backend
+  if [ -f "dist/main.js" ]; then
+    echo "-> Launching node backend -> dist/main.js"
+    exec node dist/main.js
+  fi
 fi
 
-echo "=== Generating Prisma Client ==="
-npx prisma generate || true
-
-echo "=== Running Database Migrations ==="
-if [ -n "$DATABASE_URL" ] && ! echo "$DATABASE_URL" | grep -q "localhost:5432"; then
-  echo "Running migrations against live database..."
-  npx prisma migrate deploy || echo "⚠️ Database migration notice: Skipped or finished with warning"
+echo "-> Searching for dist/main.js dynamically..."
+TARGET=$(find /app . -name "main.js" 2>/dev/null | grep "dist" | head -n 1)
+if [ -n "$TARGET" ]; then
+  echo "-> Found target at $TARGET"
+  exec node "$TARGET"
 else
-  echo "⚠️ Skipping prisma migrate deploy for localhost fallback"
+  echo "❌ Error: Could not locate compiled main.js output."
+  exit 1
 fi
-
-echo "=== Starting Application ==="
-exec node dist/main
