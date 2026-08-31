@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const client = axios.create({ baseURL: '/api/v1' });
+const baseURL = import.meta.env.VITE_API_URL || 'https://loyalty-production-033a.up.railway.app/api/v1';
+const client = axios.create({ baseURL });
 
 client.interceptors.request.use((config) => {
   const token = localStorage.getItem('admin_token');
