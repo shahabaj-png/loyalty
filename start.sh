@@ -2,21 +2,21 @@
 
 echo "=== Dynamic Node Launcher ==="
 
-if [ -f "dist/main.js" ]; then
-  echo "-> Launching node dist/main.js"
-  exec node dist/main.js
-elif [ -f "backend/dist/main.js" ]; then
-  echo "-> Launching node backend/dist/main.js"
-  exec node backend/dist/main.js
+if [ -f "dist/src/main.js" ]; then
+  echo "-> Launching node dist/src/main.js"
+  exec node dist/src/main.js
+elif [ -f "backend/dist/src/main.js" ]; then
+  echo "-> Launching node backend/dist/src/main.js"
+  exec node backend/dist/src/main.js
 elif [ -d "backend" ]; then
   cd backend
-  if [ -f "dist/main.js" ]; then
-    echo "-> Launching node backend -> dist/main.js"
-    exec node dist/main.js
+  if [ -f "dist/src/main.js" ]; then
+    echo "-> Launching node backend -> dist/src/main.js"
+    exec node dist/src/main.js
   fi
 fi
 
-echo "-> Searching for dist/main.js dynamically..."
+echo "-> Searching for main.js dynamically..."
 TARGET=$(find /app . -name "main.js" 2>/dev/null | grep "dist" | head -n 1)
 if [ -n "$TARGET" ]; then
   echo "-> Found target at $TARGET"
