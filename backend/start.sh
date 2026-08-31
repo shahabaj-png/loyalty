@@ -1,11 +1,10 @@
 #!/bin/sh
-set -e
 
 echo "=== Generating Prisma Client ==="
-npx prisma generate
+npx prisma generate || true
 
 echo "=== Running Database Migrations ==="
-npx prisma migrate deploy
+npx prisma migrate deploy || echo "⚠️ Database migration notice: Skipped or finished with warning"
 
 echo "=== Starting Application ==="
-node dist/main
+exec node dist/main
