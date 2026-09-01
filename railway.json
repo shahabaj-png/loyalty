@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "sh start.sh",
+    "startCommand": "cd backend && node dist/src/main",
     "restartPolicyType": "ON_FAILURE"
   }
 }
