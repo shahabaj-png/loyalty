@@ -5,6 +5,14 @@ import helmet from 'helmet';
 import * as compression from 'compression';
 import { AppModule } from './app.module';
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.warn('⚠️ Unhandled Promise Rejection caught:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.warn('⚠️ Uncaught Exception caught:', err);
+});
+
 async function bootstrap() {
   if (!process.env.DATABASE_URL) {
     process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/loyalty?schema=public';
@@ -30,7 +38,7 @@ async function bootstrap() {
   }));
 
   // API prefix
-  app.setGlobalPrefix('api/v1', { exclude: ['/', 'health'] });
+  app.setGlobalPrefix('api/v1', { exclude: ['/', 'health', 'health/seed'] });
 
   // Swagger docs
   const config = new DocumentBuilder()

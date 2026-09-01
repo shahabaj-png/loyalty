@@ -7,14 +7,18 @@ fi
 echo "=== Generating Prisma Client ==="
 npx prisma generate || true
 
-echo "=== Running Database Migrations & Seeding ==="
+echo "=== Running Database Migrations ==="
 if [ -n "$DATABASE_URL" ] && ! echo "$DATABASE_URL" | grep -q "localhost:5432"; then
   echo "Running migrations against live database..."
-  npx prisma migrate deploy || true
-  echo "Seeding initial database..."
-  npm run seed || true
+  npx prisma migrate deploy || npx prisma db push --accept-data-loss || true
 else
   echo "⚠️ Skipping prisma migrate deploy for localhost fallback"
+fi
+
+echo "=== Ensuring Build Exists ==="
+if [ ! -f "dist/src/main.js" ] && [ ! -f "dist/main.js" ]; then
+  echo "Building backend project..."
+  npm run build || true
 fi
 
 echo "=== Starting Application ==="

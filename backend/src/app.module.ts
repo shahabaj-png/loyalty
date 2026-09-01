@@ -26,11 +26,19 @@ import { AppController } from './app.controller';
     BullModule.forRoot({
       url: process.env.REDIS_URL || process.env.REDIS_PRIVATE_URL,
       redis: (process.env.REDIS_URL || process.env.REDIS_PRIVATE_URL) ? undefined : {
-        host: process.env.REDIS_HOST || process.env.REDISHOST || 'localhost',
+        host: process.env.REDIS_HOST || process.env.REDISHOST || '127.0.0.1',
         port: parseInt(process.env.REDIS_PORT || process.env.REDISPORT || '6379'),
         password: process.env.REDIS_PASSWORD || process.env.REDISPASSWORD || undefined,
         maxRetriesPerRequest: null,
         enableOfflineQueue: false,
+        retryStrategy: () => null,
+      },
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: true,
+      },
+      settings: {
+        stalledInterval: 0,
       },
     }),
 
