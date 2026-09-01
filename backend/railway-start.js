@@ -7,4 +7,9 @@ console.log('=== Running Database Migrations ===');
 execSync('npx prisma migrate deploy', { stdio: 'inherit' });
 
 console.log('=== Starting Application ===');
-require('./dist/main');
+const fs = require('fs');
+if (fs.existsSync('./dist/src/main.js')) {
+  require('./dist/src/main');
+} else {
+  require('./dist/main');
+}

@@ -20,8 +20,13 @@ fi
 echo "=== Starting Application ==="
 if [ -f "dist/src/main.js" ]; then
   exec node dist/src/main.js
+elif [ -f "dist/main.js" ]; then
+  exec node dist/main.js
 elif [ -f "backend/dist/src/main.js" ]; then
   exec node backend/dist/src/main.js
+elif [ -f "backend/dist/main.js" ]; then
+  exec node backend/dist/main.js
 else
-  exec node dist/src/main.js
+  echo "❌ Error: main.js not found in dist/"
+  exit 1
 fi
