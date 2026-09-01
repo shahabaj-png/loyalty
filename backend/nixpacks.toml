@@ -8,8 +8,9 @@ cmds = ["npm ci"]
 cmds = ["DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/loyalty\" npx prisma generate", "npm run build"]
 
 [start]
-cmd = "chmod +x start.sh && ./start.sh"
+cmd = "node dist/src/main"
 
 [variables]
 NODE_ENV = "production"
+NPM_CONFIG_UPDATE_NOTIFIER = "false"
 DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/loyalty?schema=public"

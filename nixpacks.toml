@@ -8,8 +8,9 @@ cmds = ["cd backend && npm ci"]
 cmds = ["cd backend && npx prisma generate && npm run build"]
 
 [start]
-cmd = "cd backend && npm run start:railway"
+cmd = "node backend/dist/src/main"
 
 [variables]
 NODE_ENV = "production"
+NPM_CONFIG_UPDATE_NOTIFIER = "false"
 DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/loyalty?schema=public"
