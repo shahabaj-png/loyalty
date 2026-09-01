@@ -23,10 +23,13 @@ async function bootstrap() {
   app.use(helmet());
   app.use(compression());
   app.enableCors({
-    origin: (process.env.CORS_ORIGINS && process.env.CORS_ORIGINS !== '*')
-      ? process.env.CORS_ORIGINS.split(',')
-      : true,
+    origin: (origin, callback) => {
+      // Dynamically echo requesting origin to satisfy Chrome credentials: true requirement
+      callback(null, origin || true);
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
   });
 
   // Validation
