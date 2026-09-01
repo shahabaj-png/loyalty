@@ -1,8 +1,9 @@
 [phases.setup]
 nixPkgs = ["nodejs_20", "openssl"]
+cmds = ["npm install -g npm@latest"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm config set update-notifier false", "npm ci"]
 
 [phases.build]
 cmds = ["DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/loyalty\" npx prisma generate", "npm run build"]
