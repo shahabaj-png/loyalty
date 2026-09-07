@@ -54,6 +54,28 @@ export const api = {
     create: (data: any) => client.post('/webhooks', data).then(r => r.data),
     logs: (id: string) => client.get(`/webhooks/${id}/logs`).then(r => r.data),
   },
+  servicePlans: {
+    list: (includeInactive?: boolean) => client.get('/service-plans', { params: { includeInactive } }).then(r => r.data),
+    get: (id: string) => client.get(`/service-plans/${id}`).then(r => r.data),
+    create: (data: any) => client.post('/service-plans', data).then(r => r.data),
+    update: (id: string, data: any) => client.put(`/service-plans/${id}`, data).then(r => r.data),
+    delete: (id: string) => client.delete(`/service-plans/${id}`).then(r => r.data),
+  },
+  tenants: {
+    list: () => client.get('/tenants').then(r => r.data),
+    get: (id: string) => client.get(`/tenants/${id}`).then(r => r.data),
+    create: (data: any) => client.post('/tenants', data).then(r => r.data),
+    update: (id: string, data: any) => client.put(`/tenants/${id}`, data).then(r => r.data),
+    regenerateCredentials: (id: string) => client.post(`/tenants/${id}/regenerate-credentials`).then(r => r.data),
+  },
+  subscriptions: {
+    list: (tenantId: string) => client.get(`/subscriptions/tenant/${tenantId}`).then(r => r.data),
+    getActive: (tenantId: string) => client.get(`/subscriptions/tenant/${tenantId}/active`).then(r => r.data),
+    create: (data: any) => client.post('/subscriptions', data).then(r => r.data),
+    renew: (id: string) => client.post(`/subscriptions/${id}/renew`).then(r => r.data),
+    cancel: (id: string, immediate?: boolean) => client.post(`/subscriptions/${id}/cancel`, { immediate }).then(r => r.data),
+    upgrade: (id: string, newPlanId: string) => client.put(`/subscriptions/${id}/upgrade`, { newPlanId }).then(r => r.data),
+  },
 };
 
 export default client;

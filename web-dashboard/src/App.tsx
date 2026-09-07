@@ -60,6 +60,9 @@ const NAV_ITEMS = [
   { path: '/points', label: 'Points & Rules', icon: '💎' },
   { path: '/challenges', label: 'Challenges', icon: '🏆' },
   { path: '/webhooks', label: 'Webhooks', icon: '🔗' },
+  { path: '/service-plans', label: 'Service Plans', icon: '📦' },
+  { path: '/tenants', label: 'Tenants', icon: '🏢' },
+  { path: '/subscriptions', label: 'Subscriptions', icon: '💳' },
 ];
 
 function Sidebar() {
@@ -449,6 +452,240 @@ function WebhooksPage() {
   );
 }
 
+// ─── SERVICE PLANS PAGE ───
+function ServicePlansPage() {
+  const [plans, setPlans] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: '', slug: '', description: '', price: '', billingCycle: 'MONTHLY', features: '{}' });
+
+  useEffect(() => {
+    api.servicePlans.list().then(setPlans).catch(() => {});
+  }, []);
+
+  const handleCreate = async () => {
+    try {
+      await api.servicePlans.create({ 
+        ...form, 
+        price: parseInt(form.price), 
+        features: JSON.parse(form.features) 
+      });
+      setShowForm(false);
+      setForm({ name: '', slug: '', description: '', price: '', billingCycle: 'MONTHLY', features: '{}' });
+      api.servicePlans.list().then(setPlans);
+    } catch (err) {
+      alert('Error creating plan. Check console for details.');
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Service Plans</h1>
+        <button onClick={() => setShowForm(!showForm)}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700">
+          + Create Plan
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-white rounded-xl p-6 shadow-sm border mb-6">
+          <h3 className="font-semibold mb-4">New Service Plan</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <input placeholder="Plan Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+              className="border rounded-lg px-4 py-2" />
+            <input placeholder="Slug (e.g. basic)" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })}
+              className="border rounded-lg px-4 py-2" />
+            <input placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+              className="border rounded-lg px-4 py-2 col-span-2" />
+            <input placeholder="Price (in paise, e.g. 99900 for ₹999)" type="number" value={form.price}
+              onChange={e => setForm({ ...form, price: e.target.value })} className="border rounded-lg px-4 py-2" />
+            <select value={form.billingCycle} onChange={e => setForm({ ...form, billingCycle: e.target.value })}
+              className="border rounded-lg px-4 py-2">
+              <option value="MONTHLY">Monthly</option>
+              <option value="QUARTERLY">Quarterly</option>
+              <option value="YEARLY">Yearly</option>
+            </select>
+            <textarea placeholder='Features (JSON, e.g. {"maxUsers": 10, "apiAccess": true})' value={form.features}
+              onChange={e => setForm({ ...form, features: e.target.value })} className="border rounded-lg px-4 py-2 col-span-2" rows={3} />
+            <button onClick={handleCreate} className="bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 col-span-2">
+              Create Plan
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {plans.map(plan => (
+          <div key={plan.id} className="bg-white rounded-xl p-6 shadow-sm border">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="font-bold text-lg text-gray-900">{plan.name}</h3>
+              <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">{plan.billingCycle}</span>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">{plan.description}</p>
+            <div className="border-t pt-4">
+              <p className="text-2xl font-bold text-indigo-600">₹{(plan.price / 100).toFixed(2)}</p>
+              <p className="text-xs text-gray-400">per {plan.billingCycle.toLowerCase()}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── TENANTS PAGE ───
+function TenantsPage() {
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: '', slug: '', description: '' });
+
+  useEffect(() => {
+    api.tenants.list().then(setTenants).catch(() => {});
+  }, []);
+
+  const handleCreate = async () => {
+    try {
+      await api.tenants.create(form);
+      setShowForm(false);
+      setForm({ name: '', slug: '', description: '' });
+      api.tenants.list().then(setTenants);
+    } catch (err) {
+      alert('Error creating tenant');
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Tenants</h1>
+        <button onClick={() => setShowForm(!showForm)}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700">
+          + Create Tenant
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-white rounded-xl p-6 shadow-sm border mb-6">
+          <h3 className="font-semibold mb-4">New Tenant</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <input placeholder="Tenant Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+              className="border rounded-lg px-4 py-2" />
+            <input placeholder="Slug (e.g. my-business)" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })}
+              className="border rounded-lg px-4 py-2" />
+            <input placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+              className="border rounded-lg px-4 py-2 col-span-2" />
+            <button onClick={handleCreate} className="bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 col-span-2">
+              Create Tenant
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-4">
+        {tenants.map(tenant => (
+          <div key={tenant.id} className="bg-white rounded-xl p-6 shadow-sm border">
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <h3 className="font-bold text-lg text-gray-900">{tenant.name}</h3>
+                <p className="text-sm text-gray-500 mt-1">{tenant.description}</p>
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">API Key:</span>
+                    <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{tenant.apiKey}</code>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Slug:</span>
+                    <span className="text-xs font-medium">{tenant.slug}</span>
+                  </div>
+                </div>
+              </div>
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                tenant.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              }`}>
+                {tenant.isActive ? 'Active' : 'Inactive'}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── SUBSCRIPTIONS PAGE ───
+function SubscriptionsPage() {
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [selectedTenant, setSelectedTenant] = useState<string>('');
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.tenants.list().then(setTenants).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (selectedTenant) {
+      api.subscriptions.list(selectedTenant).then(setSubscriptions).catch(() => {});
+    }
+  }, [selectedTenant]);
+
+  const STATUS_COLORS: Record<string, string> = {
+    ACTIVE: 'bg-green-100 text-green-800',
+    TRIALING: 'bg-blue-100 text-blue-800',
+    PAST_DUE: 'bg-yellow-100 text-yellow-800',
+    CANCELED: 'bg-red-100 text-red-800',
+    EXPIRED: 'bg-gray-100 text-gray-800',
+  };
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Subscriptions</h1>
+      
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Select Tenant</label>
+        <select value={selectedTenant} onChange={e => setSelectedTenant(e.target.value)}
+          className="border rounded-lg px-4 py-2 w-full max-w-md">
+          <option value="">-- Select a tenant --</option>
+          {tenants.map(t => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {selectedTenant && (
+        <div className="space-y-4">
+          {subscriptions.length === 0 ? (
+            <div className="bg-white rounded-xl p-8 shadow-sm border text-center text-gray-500">
+              No subscriptions found for this tenant
+            </div>
+          ) : (
+            subscriptions.map(sub => (
+              <div key={sub.id} className="bg-white rounded-xl p-6 shadow-sm border">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-bold text-lg text-gray-900">{sub.plan?.name}</h3>
+                      <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[sub.status] || ''}`}>
+                        {sub.status}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">
+                      Period: {new Date(sub.currentPeriodStart).toLocaleDateString()} - {new Date(sub.currentPeriodEnd).toLocaleDateString()}
+                    </p>
+                    <div className="mt-3">
+                      <span className="text-lg font-bold text-indigo-600">₹{(sub.plan?.price / 100).toFixed(2)}</span>
+                      <span className="text-sm text-gray-400"> / {sub.plan?.billingCycle.toLowerCase()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── LAYOUT ───
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -477,6 +714,9 @@ export default function App() {
                 <Route path="/points" element={<PointsPage />} />
                 <Route path="/challenges" element={<ChallengesPage />} />
                 <Route path="/webhooks" element={<WebhooksPage />} />
+                <Route path="/service-plans" element={<ServicePlansPage />} />
+                <Route path="/tenants" element={<TenantsPage />} />
+                <Route path="/subscriptions" element={<SubscriptionsPage />} />
               </Routes>
             </Layout>
           ) : <Navigate to="/login" />
