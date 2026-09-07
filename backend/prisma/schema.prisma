@@ -13,44 +13,46 @@ datasource db {
 // ============================================================
 
 model User {
-  id              String          @id @default(uuid())
-  email           String          @unique
+  id              String         @id @default(uuid())
+  email           String         @unique
   passwordHash    String
   phone           String?
   firstName       String
   lastName        String
   avatarUrl       String?
-  role            UserRole        @default(CUSTOMER)
-  tier            TierLevel       @default(BRONZE)
-  totalPoints     Int             @default(0)
-  availablePoints Int             @default(0)
-  lifetimePoints  Int             @default(0)
-  referralCode    String          @unique
+  role            UserRole       @default(CUSTOMER)
+  tier            TierLevel      @default(BRONZE)
+  totalPoints     Int            @default(0)
+  availablePoints Int            @default(0)
+  lifetimePoints  Int            @default(0)
+  referralCode    String         @unique
   referredBy      String?
-  identityStatus  IdentityStatus  @default(PENDING)
-  faceEnrolled    Boolean         @default(false)
+  identityStatus  IdentityStatus @default(PENDING)
+  faceEnrolled    Boolean        @default(false)
   faceVector      Bytes?
-  streakDays      Int             @default(0)
+  streakDays      Int            @default(0)
   lastCheckIn     DateTime?
-  loginAttempts   Int             @default(0)
+  loginAttempts   Int            @default(0)
   lockedUntil     DateTime?
   birthday        DateTime?
   metadata        Json?
-  isActive        Boolean         @default(true)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
-  transactions    PointTransaction[]
-  rewards         UserReward[]
-  badges          UserBadge[]
-  challenges      UserChallenge[]
-  checkIns        CheckIn[]
-  notifications   Notification[]
-  referrals       Referral[]      @relation("referrer")
-  referredUsers   Referral[]      @relation("referee")
-  identityDocs    IdentityDocument[]
-  refreshTokens   RefreshToken[]
-  spinHistory     SpinWheelHistory[]
+  transactions  PointTransaction[]
+  rewards       UserReward[]
+  badges        UserBadge[]
+  challenges    UserChallenge[]
+  checkIns      CheckIn[]
+  notifications Notification[]
+  referrals     Referral[]         @relation("referrer")
+  referredUsers Referral[]         @relation("referee")
+  identityDocs  IdentityDocument[]
+  refreshTokens RefreshToken[]
+  spinHistory   SpinWheelHistory[]
+  tenants       Tenant[]           @relation("businessTenants")
+  orders        Order[]            @relation("userOrders")
 
   @@index([email])
   @@index([referralCode])
@@ -75,9 +77,9 @@ model RefreshToken {
 // ============================================================
 
 model PointTransaction {
-  id          String              @id @default(uuid())
+  id          String               @id @default(uuid())
   userId      String
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   type        PointTransactionType
   amount      Int
   balance     Int
@@ -85,7 +87,7 @@ model PointTransaction {
   source      String
   metadata    Json?
   expiresAt   DateTime?
-  createdAt   DateTime            @default(now())
+  createdAt   DateTime             @default(now())
 
   @@index([userId])
   @@index([type])
@@ -94,7 +96,7 @@ model PointTransaction {
 }
 
 model PointRule {
-  id              String    @id @default(uuid())
+  id              String   @id @default(uuid())
   name            String
   event           String
   basePoints      Int
@@ -102,9 +104,9 @@ model PointRule {
   maxPoints       Int?
   cooldownMinutes Int?
   conditions      Json?
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([event])
 }
@@ -114,20 +116,20 @@ model PointRule {
 // ============================================================
 
 model Reward {
-  id          String      @id @default(uuid())
+  id          String       @id @default(uuid())
   name        String
   description String
   imageUrl    String?
   pointsCost  Int
   category    String
-  minTier     TierLevel   @default(BRONZE)
+  minTier     TierLevel    @default(BRONZE)
   stock       Int?
-  isActive    Boolean     @default(true)
-  validFrom   DateTime    @default(now())
+  isActive    Boolean      @default(true)
+  validFrom   DateTime     @default(now())
   validUntil  DateTime?
   metadata    Json?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   userRewards UserReward[]
 
   @@index([category])
@@ -187,7 +189,7 @@ model UserBadge {
 }
 
 model Challenge {
-  id              String        @id @default(uuid())
+  id              String          @id @default(uuid())
   name            String
   description     String
   type            ChallengeType
@@ -195,10 +197,10 @@ model Challenge {
   criteria        Json
   startsAt        DateTime
   endsAt          DateTime
-  isActive        Boolean       @default(true)
+  isActive        Boolean         @default(true)
   maxParticipants Int?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
   participants    UserChallenge[]
 
   @@index([type])
@@ -239,12 +241,12 @@ model CheckIn {
 }
 
 model SpinWheelHistory {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  prize     String
-  points    Int
-  spunAt    DateTime @default(now())
+  id     String   @id @default(uuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prize  String
+  points Int
+  spunAt DateTime @default(now())
 
   @@index([userId])
   @@index([spunAt])
@@ -317,32 +319,134 @@ model Referral {
 // ============================================================
 
 model WebhookEndpoint {
-  id        String   @id @default(uuid())
+  id        String       @id @default(uuid())
   url       String
   events    String[]
   secret    String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
   logs      WebhookLog[]
 
   @@index([isActive])
 }
 
 model WebhookLog {
-  id         String   @id @default(uuid())
+  id         String          @id @default(uuid())
   endpointId String
   endpoint   WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
   event      String
   payload    Json
   statusCode Int?
   response   String?
-  attempts   Int      @default(0)
-  sentAt     DateTime @default(now())
+  attempts   Int             @default(0)
+  sentAt     DateTime        @default(now())
 
   @@index([endpointId])
   @@index([event])
   @@index([sentAt])
+}
+
+// ============================================================
+// B2B SERVICE PLANS & SUBSCRIPTIONS
+// ============================================================
+
+model ServicePlan {
+  id            String         @id @default(uuid())
+  name          String         @unique
+  slug          String         @unique
+  description   String
+  features      Json
+  price         Int
+  billingCycle  BillingCycle   @default(MONTHLY)
+  maxUsers      Int?
+  maxTenants    Int?
+  apiRateLimit  Int?
+  isActive      Boolean        @default(true)
+  metadata      Json?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+model Tenant {
+  id            String         @id @default(uuid())
+  businessId    String
+  business      User           @relation("businessTenants", fields: [businessId], references: [id], onDelete: Cascade)
+  name          String
+  slug          String         @unique
+  description   String?
+  logo          String?
+  settings      Json?
+  apiKey        String         @unique
+  apiSecret     String
+  webhookUrl    String?
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
+  orders        Order[]
+
+  @@index([businessId])
+  @@index([slug])
+  @@index([apiKey])
+}
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  tenantId           String
+  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planId             String
+  plan               ServicePlan        @relation(fields: [planId], references: [id])
+  status             SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart DateTime           @default(now())
+  currentPeriodEnd   DateTime
+  cancelAt           DateTime?
+  canceledAt         DateTime?
+  trialEndsAt        DateTime?
+  metadata           Json?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  orders             Order[]
+
+  @@index([tenantId])
+  @@index([planId])
+  @@index([status])
+  @@index([currentPeriodEnd])
+}
+
+model Order {
+  id             String        @id @default(uuid())
+  orderNumber    String        @unique
+  tenantId       String
+  tenant         Tenant        @relation(fields: [tenantId], references: [id])
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+  userId         String
+  user           User          @relation("userOrders", fields: [userId], references: [id])
+  items          Json
+  subtotal       Int
+  discount       Int           @default(0)
+  pointsUsed     Int           @default(0)
+  pointsDiscount Int           @default(0)
+  total          Int
+  status         OrderStatus   @default(PENDING)
+  paymentMethod  String?
+  paymentId      String?
+  paidAt         DateTime?
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([createdAt])
 }
 
 // ============================================================
@@ -354,6 +458,7 @@ enum UserRole {
   ADMIN
   MANAGER
   API_CLIENT
+  BUSINESS_OWNER
 }
 
 enum TierLevel {
@@ -407,4 +512,27 @@ enum BadgeRarity {
   RARE
   EPIC
   LEGENDARY
+}
+
+enum BillingCycle {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELED
 }

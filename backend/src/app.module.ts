@@ -11,6 +11,9 @@ import { IdentityModule } from './identity/identity.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { CommonModule } from './common/common.module';
+import { ServicePlansModule } from './service-plans/service-plans.module';
+import { TenantsModule } from './tenants/tenants.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 import { AppController } from './app.controller';
 
@@ -52,6 +55,9 @@ import { AppController } from './app.controller';
     IdentityModule,
     WebhooksModule,
     AnalyticsModule,
+    ServicePlansModule,
+    TenantsModule,
+    SubscriptionsModule,
   ],
   controllers: [AppController],
 })
