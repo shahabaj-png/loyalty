@@ -63,6 +63,8 @@ const NAV_ITEMS = [
   { path: '/service-plans', label: 'Service Plans', icon: '📦' },
   { path: '/tenants', label: 'Tenants', icon: '🏢' },
   { path: '/subscriptions', label: 'Subscriptions', icon: '💳' },
+  { path: '/checkout', label: 'Cart & Checkout', icon: '🛒' },
+  { path: '/age-verification', label: 'Age Verification (21+)', icon: '🔞' },
 ];
 
 function Sidebar() {
@@ -686,6 +688,288 @@ function SubscriptionsPage() {
   );
 }
 
+// ─── CHECKOUT PAGE (B2B Cart & Checkout) ───
+function CheckoutPage() {
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [selectedTenant, setSelectedTenant] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState('');
+  const [gstNumber, setGstNumber] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [stateName, setStateName] = useState('');
+  const [pincode, setPincode] = useState('');
+  const [pointsToUse, setPointsToUse] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState('UPI');
+  const [loading, setLoading] = useState(false);
+  const [orderResult, setOrderResult] = useState<any>(null);
+
+  useEffect(() => {
+    api.tenants.list().then(setTenants).catch(() => {});
+    api.servicePlans.list().then(setPlans).catch(() => {});
+  }, []);
+
+  const currentPlan = plans.find(p => p.id === selectedPlan);
+  const planPriceRupees = currentPlan ? currentPlan.price / 100 : 0;
+  const pointsDiscountRupees = Math.min(planPriceRupees, pointsToUse);
+  const finalPayableRupees = Math.max(0, planPriceRupees - pointsDiscountRupees);
+
+  const handleCheckout = async () => {
+    if (!selectedTenant || !selectedPlan) {
+      alert('Please select both a Tenant and a Service Plan');
+      return;
+    }
+    setLoading(true);
+    try {
+      const checkoutRes = await api.orders.checkout({
+        tenantId: selectedTenant,
+        planId: selectedPlan,
+        pointsToUse,
+        paymentMethod,
+        gstNumber,
+        address,
+        city,
+        state: stateName,
+        pincode,
+      });
+
+      // Simulate payment gateway completion
+      const payRes = await api.orders.pay(checkoutRes.order.id, {
+        paymentId: `PAY-${Date.now()}`,
+        status: 'SUCCESS',
+      });
+
+      setOrderResult({ checkout: checkoutRes, pay: payRes });
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Checkout failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">🛒 B2B Cart & Subscription Checkout</h1>
+
+      {orderResult ? (
+        <div className="bg-white rounded-2xl shadow-sm border p-8 text-center">
+          <span className="text-5xl">🎉</span>
+          <h2 className="text-2xl font-bold text-gray-900 mt-4">Order & Subscription Confirmed!</h2>
+          <p className="text-gray-500 mt-2">Order #{orderResult.checkout?.order?.orderNumber}</p>
+          <div className="bg-green-50 border border-green-200 text-green-800 rounded-xl p-4 my-6 text-sm">
+            ✅ Payment Verified ({orderResult.checkout?.order?.paymentMethod}) • Tenant Subscription Activated
+          </div>
+          <div className="grid grid-cols-3 gap-4 text-left border-t border-b py-4 my-6">
+            <div>
+              <p className="text-xs text-gray-400">Subtotal</p>
+              <p className="font-bold text-gray-900">₹{orderResult.checkout?.summary?.subtotalRupees}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">Points Discount</p>
+              <p className="font-bold text-green-600">-₹{orderResult.checkout?.summary?.discountRupees}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">Amount Paid</p>
+              <p className="font-bold text-indigo-600">₹{orderResult.checkout?.summary?.totalPayableRupees}</p>
+            </div>
+          </div>
+          <button onClick={() => setOrderResult(null)}
+            className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700">
+            Create Another Order
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            {/* 1. Tenant & Plan Selection */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border">
+              <h3 className="font-bold text-gray-900 mb-4">1. Select Business & Service Plan</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Tenant (Business)</label>
+                  <select value={selectedTenant} onChange={e => setSelectedTenant(e.target.value)}
+                    className="w-full border rounded-lg px-4 py-2">
+                    <option value="">-- Choose Tenant --</option>
+                    {tenants.map(t => <option key={t.id} value={t.id}>{t.name} ({t.slug})</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Service Plan</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {plans.map(p => (
+                      <div key={p.id} onClick={() => setSelectedPlan(p.id)}
+                        className={`border rounded-xl p-4 cursor-pointer transition-all ${
+                          selectedPlan === p.id ? 'border-indigo-600 bg-indigo-50 ring-2 ring-indigo-500' : 'hover:border-gray-300'
+                        }`}>
+                        <p className="font-bold text-gray-900">{p.name}</p>
+                        <p className="text-xs text-gray-500">{p.description}</p>
+                        <p className="text-lg font-bold text-indigo-600 mt-2">₹{(p.price / 100).toFixed(2)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Business GST & Address Details */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border">
+              <h3 className="font-bold text-gray-900 mb-4">2. Business Tax & Address Details</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">GSTIN Number</label>
+                  <input placeholder="22AAAAA0000A1Z5" value={gstNumber} onChange={e => setGstNumber(e.target.value)}
+                    className="w-full border rounded-lg px-4 py-2 uppercase font-mono text-sm" />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Street Address</label>
+                  <input placeholder="123 Business Park, Main St" value={address} onChange={e => setAddress(e.target.value)}
+                    className="w-full border rounded-lg px-4 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">City</label>
+                  <input placeholder="Mumbai" value={city} onChange={e => setCity(e.target.value)}
+                    className="w-full border rounded-lg px-4 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">State</label>
+                  <input placeholder="Maharashtra" value={stateName} onChange={e => setStateName(e.target.value)}
+                    className="w-full border rounded-lg px-4 py-2 text-sm" />
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Loyalty Points Discount */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border">
+              <h3 className="font-bold text-gray-900 mb-2">3. Apply Loyalty Wallet Points</h3>
+              <p className="text-xs text-gray-500 mb-4">1 Point = ₹1 Discount on subscription renewal</p>
+              <div className="flex items-center gap-4">
+                <input type="number" min="0" placeholder="Points to redeem" value={pointsToUse || ''}
+                  onChange={e => setPointsToUse(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="border rounded-lg px-4 py-2 w-48 text-sm" />
+                <span className="text-sm font-semibold text-green-600">-₹{pointsDiscountRupees} Discount</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Cart Summary Side Panel */}
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl p-6 shadow-sm border">
+              <h3 className="font-bold text-gray-900 mb-4">Order Summary</h3>
+              <div className="space-y-3 border-b pb-4 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Plan Price</span>
+                  <span className="font-semibold">₹{planPriceRupees}</span>
+                </div>
+                <div className="flex justify-between text-green-600">
+                  <span>Loyalty Discount</span>
+                  <span>-₹{pointsDiscountRupees}</span>
+                </div>
+              </div>
+              <div className="flex justify-between items-center py-4">
+                <span className="font-bold text-gray-900">Total Payable</span>
+                <span className="text-2xl font-bold text-indigo-600">₹{finalPayableRupees}</span>
+              </div>
+
+              <div className="space-y-3 mt-4">
+                <label className="block text-xs font-medium text-gray-700">Payment Gateway Option</label>
+                <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm">
+                  <option value="UPI">UPI (Google Pay / PhonePe / Paytm)</option>
+                  <option value="CARD">Credit / Debit Card</option>
+                  <option value="NETBANKING">Net Banking</option>
+                </select>
+                <button onClick={handleCheckout} disabled={loading || !selectedTenant || !selectedPlan}
+                  className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 mt-4">
+                  {loading ? 'Processing Payment...' : 'Pay & Activate Subscription'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── AGE VERIFICATION PAGE (Altria 21+ Compliance) ───
+function AgeVerificationPage() {
+  const [userId, setUserId] = useState('');
+  const [documentType, setDocumentType] = useState('DRIVERS_LICENSE');
+  const [documentNumber, setDocumentNumber] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [result, setResult] = useState<any>(null);
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await api.ageVerification.verify({
+        userId,
+        documentType,
+        documentNumber,
+        dateOfBirth,
+      });
+      setResult(res);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Age verification failed');
+    }
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto">
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">🔞 Altria Age Verification (21+)</h1>
+      <p className="text-gray-500 mb-6">Verify customer age for tobacco offer compliance & ATC21+ status</p>
+
+      <div className="bg-white rounded-xl p-6 shadow-sm border mb-8">
+        <form onSubmit={handleVerify} className="grid grid-cols-2 gap-4">
+          <div className="col-span-2">
+            <label className="block text-xs font-medium text-gray-700 mb-1">User ID</label>
+            <input placeholder="User UUID" value={userId} onChange={e => setUserId(e.target.value)}
+              className="w-full border rounded-lg px-4 py-2 text-sm" required />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Document Type</label>
+            <select value={documentType} onChange={e => setDocumentType(e.target.value)}
+              className="w-full border rounded-lg px-4 py-2 text-sm">
+              <option value="DRIVERS_LICENSE">Driver's License</option>
+              <option value="PASSPORT">Passport</option>
+              <option value="STATE_ID">State ID</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Document Number</label>
+            <input placeholder="DL-98765432" value={documentNumber} onChange={e => setDocumentNumber(e.target.value)}
+              className="w-full border rounded-lg px-4 py-2 text-sm" />
+          </div>
+          <div className="col-span-2">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Date of Birth (YYYY-MM-DD)</label>
+            <input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)}
+              className="w-full border rounded-lg px-4 py-2 text-sm" required />
+          </div>
+          <button type="submit" className="col-span-2 bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700">
+            Verify Age & Submit
+          </button>
+        </form>
+      </div>
+
+      {result && (
+        <div className={`rounded-xl p-6 border ${result.is21Plus ? 'bg-green-50 border-green-200 text-green-900' : 'bg-red-50 border-red-200 text-red-900'}`}>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{result.is21Plus ? '✅' : '❌'}</span>
+            <div>
+              <h3 className="font-bold text-lg">{result.message}</h3>
+              <p className="text-sm mt-1">Calculated Age: {result.age} years old</p>
+              <p className="text-sm">AVT Scan Count: {result.scanCount}/3</p>
+              <p className="text-sm font-semibold mt-1">
+                ATC21+ Qualified: {result.isATC21Plus ? 'YES (Eligible for Digital Tobacco Coupons)' : 'NO'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── LAYOUT ───
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -717,6 +1001,8 @@ export default function App() {
                 <Route path="/service-plans" element={<ServicePlansPage />} />
                 <Route path="/tenants" element={<TenantsPage />} />
                 <Route path="/subscriptions" element={<SubscriptionsPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/age-verification" element={<AgeVerificationPage />} />
               </Routes>
             </Layout>
           ) : <Navigate to="/login" />

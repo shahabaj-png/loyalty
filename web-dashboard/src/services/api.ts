@@ -76,6 +76,16 @@ export const api = {
     cancel: (id: string, immediate?: boolean) => client.post(`/subscriptions/${id}/cancel`, { immediate }).then(r => r.data),
     upgrade: (id: string, newPlanId: string) => client.put(`/subscriptions/${id}/upgrade`, { newPlanId }).then(r => r.data),
   },
+  orders: {
+    checkout: (data: any) => client.post('/orders/checkout', data).then(r => r.data),
+    pay: (orderId: string, data?: any) => client.post(`/orders/${orderId}/pay`, data || {}).then(r => r.data),
+    list: (params?: any) => client.get('/orders', { params }).then(r => r.data),
+    get: (id: string) => client.get(`/orders/${id}`).then(r => r.data),
+  },
+  ageVerification: {
+    verify: (data: any) => client.post('/age-verification/verify', data).then(r => r.data),
+    status: (userId: string) => client.get(`/age-verification/status/${userId}`).then(r => r.data),
+  },
 };
 
 export default client;

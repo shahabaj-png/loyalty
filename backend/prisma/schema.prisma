@@ -28,6 +28,8 @@ model User {
   referralCode    String         @unique
   referredBy      String?
   identityStatus  IdentityStatus @default(PENDING)
+  isATC21Plus     Boolean        @default(false)
+  avtScanCount    Int            @default(0)
   faceEnrolled    Boolean        @default(false)
   faceVector      Bytes?
   streakDays      Int            @default(0)
@@ -380,6 +382,11 @@ model Tenant {
   slug          String         @unique
   description   String?
   logo          String?
+  gstNumber     String?
+  address       String?
+  city          String?
+  state         String?
+  pincode       String?
   settings      Json?
   apiKey        String         @unique
   apiSecret     String

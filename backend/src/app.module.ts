@@ -14,6 +14,8 @@ import { CommonModule } from './common/common.module';
 import { ServicePlansModule } from './service-plans/service-plans.module';
 import { TenantsModule } from './tenants/tenants.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { OrdersModule } from './orders/orders.module';
+import { AgeVerificationModule } from './age-verification/age-verification.module';
 
 import { AppController } from './app.controller';
 
@@ -58,6 +60,8 @@ import { AppController } from './app.controller';
     ServicePlansModule,
     TenantsModule,
     SubscriptionsModule,
+    OrdersModule,
+    AgeVerificationModule,
   ],
   controllers: [AppController],
 })
