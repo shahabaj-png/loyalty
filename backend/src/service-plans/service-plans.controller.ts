@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, IsBoolean, IsObject, Min } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsBoolean, IsObject, Min, IsEnum } from 'class-validator';
+import { BillingCycle } from '@prisma/client';
 import { ServicePlansService } from './service-plans.service';
 import { AdminGuard } from '../auth/jwt.guard';
 
@@ -10,7 +11,7 @@ class CreateServicePlanDto {
   @IsString() description: string;
   @IsObject() features: any;
   @IsNumber() @Min(0) price: number;
-  @IsOptional() @IsString() billingCycle?: string;
+  @IsOptional() @IsEnum(BillingCycle) billingCycle?: BillingCycle;
   @IsOptional() @IsNumber() maxUsers?: number;
   @IsOptional() @IsNumber() maxTenants?: number;
   @IsOptional() @IsNumber() apiRateLimit?: number;
@@ -22,7 +23,7 @@ class UpdateServicePlanDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsObject() features?: any;
   @IsOptional() @IsNumber() @Min(0) price?: number;
-  @IsOptional() @IsString() billingCycle?: string;
+  @IsOptional() @IsEnum(BillingCycle) billingCycle?: BillingCycle;
   @IsOptional() @IsNumber() maxUsers?: number;
   @IsOptional() @IsNumber() maxTenants?: number;
   @IsOptional() @IsNumber() apiRateLimit?: number;

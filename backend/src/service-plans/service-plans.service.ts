@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { BillingCycle } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service';
 
 @Injectable()
@@ -30,7 +31,7 @@ export class ServicePlansService {
     description: string;
     features: any;
     price: number;
-    billingCycle?: string;
+    billingCycle?: BillingCycle;
     maxUsers?: number;
     maxTenants?: number;
     apiRateLimit?: number;
@@ -47,7 +48,7 @@ export class ServicePlansService {
     description: string;
     features: any;
     price: number;
-    billingCycle: string;
+    billingCycle: BillingCycle;
     maxUsers: number;
     maxTenants: number;
     apiRateLimit: number;
