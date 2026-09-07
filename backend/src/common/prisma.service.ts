@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { execSync } from 'child_process';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -12,6 +13,16 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit() {
     try {
+      if (process.env.DATABASE_URL) {
+        console.log('🔄 Syncing database schema with Prisma db push...');
+        try {
+          execSync('npx prisma db push --accept-data-loss --skip-generate', { stdio: 'inherit' });
+          console.log('✅ Database schema synced successfully.');
+        } catch (dbPushError: any) {
+          console.warn('⚠️ Automatic DB Push notice:', dbPushError?.message || dbPushError);
+        }
+      }
+
       await this.$connect();
       console.log('✅ Prisma connected to PostgreSQL database successfully.');
 
@@ -19,6 +30,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       const userCount = await this.user.count().catch(() => 0);
       if (userCount === 0) {
         await this.autoSeed();
+      } else {
+        // Also check if service plans exist
+        const planCount = await this.servicePlan.count().catch(() => 0);
+        if (planCount === 0) {
+          await this.seedServicePlans();
+        }
       }
     } catch (error) {
       console.error('❌ Prisma failed to connect to PostgreSQL database:', error);
@@ -27,6 +44,41 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleDestroy() {
     await this.$disconnect();
+  }
+
+  private async seedServicePlans() {
+    try {
+      console.log('🌱 Seeding default service plans...');
+      await this.servicePlan.createMany({
+        data: [
+          {
+            name: 'Starter Plan',
+            slug: 'starter-plan',
+            description: 'Basic plan for small businesses',
+            features: { maxUsers: 100, maxTenants: 1, apiRateLimit: 1000 },
+            price: 29,
+            billingCycle: 'MONTHLY',
+            maxUsers: 100,
+            maxTenants: 1,
+            apiRateLimit: 1000,
+          },
+          {
+            name: 'Pro Plan',
+            slug: 'pro-plan',
+            description: 'Advanced plan for growing enterprises',
+            features: { maxUsers: 1000, maxTenants: 10, apiRateLimit: 10000 },
+            price: 99,
+            billingCycle: 'MONTHLY',
+            maxUsers: 1000,
+            maxTenants: 10,
+            apiRateLimit: 10000,
+          },
+        ],
+      });
+      console.log('✅ Default service plans seeded.');
+    } catch (e) {
+      console.warn('⚠️ Service plans seeding notice:', e);
+    }
   }
 
   private async autoSeed() {
@@ -84,6 +136,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         this.pointRule.create({ data: { name: 'Review Bonus', event: 'review_submitted', basePoints: 50, cooldownMinutes: 1440 } }),
         this.pointRule.create({ data: { name: 'Profile Complete', event: 'profile_completed', basePoints: 100 } }),
       ]);
+
+      await this.seedServicePlans();
 
       console.log('✅ Auto-seed complete! Admin account admin@loyaltyplatform.com created.');
     } catch (e) {
