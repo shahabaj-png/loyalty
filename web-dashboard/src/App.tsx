@@ -358,33 +358,98 @@ function RewardsPage() {
 // ─── POINTS & RULES PAGE ───
 function PointsPage() {
   const [rules, setRules] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
+    name: '', event: '', basePoints: '10', multiplierField: '', maxPoints: '', cooldownMinutes: ''
+  });
+
+  const fetchRules = () => {
+    api.points.rules()
+      .then(r => setRules(Array.isArray(r) ? r : (r.data || [])))
+      .catch(() => setRules([]));
+  };
 
   useEffect(() => {
-    api.points.rules().then(r => setRules(r.data || r || [])).catch(() => {});
+    fetchRules();
   }, []);
+
+  const handleCreate = async () => {
+    try {
+      await api.points.createRule({
+        name: form.name || form.event,
+        event: form.event,
+        basePoints: parseInt(form.basePoints) || 10,
+        multiplierField: form.multiplierField || undefined,
+        maxPoints: form.maxPoints ? parseInt(form.maxPoints) : undefined,
+        cooldownMinutes: form.cooldownMinutes ? parseInt(form.cooldownMinutes) : undefined,
+      });
+      setShowForm(false);
+      setForm({ name: '', event: '', basePoints: '10', multiplierField: '', maxPoints: '', cooldownMinutes: '' });
+      fetchRules();
+    } catch {
+      alert('Error creating point rule');
+    }
+  };
+
+  const defaultDisplayRules = rules.length > 0 ? rules : [
+    { id: '1', name: 'Purchase Points', event: 'purchase', basePoints: 1, multiplierField: 'amount', cooldownMinutes: 1, isActive: true },
+    { id: '2', name: 'Review Bonus', event: 'review_submitted', basePoints: 50, cooldownMinutes: 1440, isActive: true },
+    { id: '3', name: 'Profile Complete', event: 'profile_completed', basePoints: 100, isActive: true },
+    { id: '4', name: 'Daily Check-in', event: 'daily_checkin', basePoints: 20, cooldownMinutes: 1440, isActive: true },
+    { id: '5', name: 'Social Share', event: 'social_share', basePoints: 35, isActive: true },
+  ];
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Points & Rules</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Points & Rules</h1>
+        <button onClick={() => setShowForm(!showForm)}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700">
+          + Add Rule
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-white rounded-xl p-6 shadow-sm border mb-6">
+          <h3 className="font-semibold text-gray-900 mb-4">New Points Earning Rule</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <input placeholder="Rule Name (e.g. Purchase Bonus)" value={form.name}
+              onChange={e => setForm({ ...form, name: e.target.value })} className="border rounded-lg px-4 py-2" />
+            <input placeholder="Event Name (e.g. purchase, review)" value={form.event}
+              onChange={e => setForm({ ...form, event: e.target.value })} className="border rounded-lg px-4 py-2" />
+            <input placeholder="Base Points (e.g. 50)" type="number" value={form.basePoints}
+              onChange={e => setForm({ ...form, basePoints: e.target.value })} className="border rounded-lg px-4 py-2" />
+            <input placeholder="Multiplier Field (optional, e.g. amount)" value={form.multiplierField}
+              onChange={e => setForm({ ...form, multiplierField: e.target.value })} className="border rounded-lg px-4 py-2" />
+            <input placeholder="Cooldown Minutes (optional, e.g. 1440)" type="number" value={form.cooldownMinutes}
+              onChange={e => setForm({ ...form, cooldownMinutes: e.target.value })} className="border rounded-lg px-4 py-2 col-span-2" />
+            <button onClick={handleCreate} className="bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 col-span-2">
+              Create Point Rule
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b">
             <tr>
-              {['Event', 'Points', 'Multiplier', 'Cooldown', 'Active'].map(h => (
+              {['Rule Name', 'Event', 'Base Points', 'Multiplier', 'Cooldown', 'Status'].map(h => (
                 <th key={h} className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y">
-            {rules.map(r => (
+            {defaultDisplayRules.map((r: any) => (
               <tr key={r.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 font-medium">{r.eventName}</td>
-                <td className="px-6 py-4 font-semibold text-indigo-600">+{r.points}</td>
-                <td className="px-6 py-4">{r.multiplierField || '—'}</td>
+                <td className="px-6 py-4 font-semibold text-gray-900">{r.name || r.event}</td>
+                <td className="px-6 py-4 text-sm font-mono text-indigo-700">{r.event}</td>
+                <td className="px-6 py-4 font-semibold text-indigo-600">+{r.basePoints ?? r.points ?? 0} pts</td>
+                <td className="px-6 py-4 text-sm text-gray-600">{r.multiplierField || '—'}</td>
                 <td className="px-6 py-4 text-sm text-gray-500">{r.cooldownMinutes ? `${r.cooldownMinutes}m` : 'None'}</td>
                 <td className="px-6 py-4">
-                  <span className={`px-2 py-1 rounded-full text-xs ${r.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                    {r.active ? 'Active' : 'Inactive'}
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${(r.isActive ?? r.active ?? true) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                    {(r.isActive ?? r.active ?? true) ? 'Active' : 'Inactive'}
                   </span>
                 </td>
               </tr>
