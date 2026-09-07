@@ -16,17 +16,26 @@ export class UsersService {
     return safe;
   }
 
-  async findAll(page = 1, limit = 20, search?: string, tier?: string) {
+  async findAll(page: any = 1, limit: any = 20, search?: string, tier?: string) {
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 20);
+
     const where: any = { isActive: true };
     if (search) { where.OR = [{ email: { contains: search, mode: 'insensitive' } }, { firstName: { contains: search, mode: 'insensitive' } }, { lastName: { contains: search, mode: 'insensitive' } }]; }
     if (tier) where.tier = tier;
 
     const [data, total] = await Promise.all([
-      this.prisma.user.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: 'desc' }, select: { id: true, email: true, firstName: true, lastName: true, avatarUrl: true, tier: true, totalPoints: true, availablePoints: true, lifetimePoints: true, streakDays: true, identityStatus: true, faceEnrolled: true, referralCode: true, createdAt: true } }),
+      this.prisma.user.findMany({
+        where,
+        skip: (pageNum - 1) * limitNum,
+        take: limitNum,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, email: true, firstName: true, lastName: true, avatarUrl: true, tier: true, totalPoints: true, availablePoints: true, lifetimePoints: true, streakDays: true, identityStatus: true, faceEnrolled: true, referralCode: true, createdAt: true },
+      }),
       this.prisma.user.count({ where }),
     ]);
 
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return { data, total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) };
   }
 
   async updateProfile(userId: string, dto: { firstName?: string; lastName?: string; phone?: string; avatarUrl?: string; birthday?: string }) {
@@ -49,12 +58,15 @@ export class UsersService {
     return null;
   }
 
-  async getNotifications(userId: string, page = 1, limit = 20) {
+  async getNotifications(userId: string, page: any = 1, limit: any = 20) {
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 20);
+
     const [data, total] = await Promise.all([
-      this.prisma.notification.findMany({ where: { userId }, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: 'desc' } }),
+      this.prisma.notification.findMany({ where: { userId }, skip: (pageNum - 1) * limitNum, take: limitNum, orderBy: { createdAt: 'desc' } }),
       this.prisma.notification.count({ where: { userId } }),
     ]);
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return { data, total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) };
   }
 
   async markNotificationRead(userId: string, notificationId: string) {
