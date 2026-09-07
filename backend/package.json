@@ -5,10 +5,10 @@
   "scripts": {
     "build": "prisma generate --schema=prisma/schema.prisma && nest build",
     "postinstall": "prisma generate --schema=prisma/schema.prisma || true",
-    "start": "nest start",
+    "start": "npx prisma db push --accept-data-loss && nest start",
     "start:dev": "nest start --watch",
-    "start:prod": "node dist/src/main.js || node dist/main.js",
-    "start:railway": "chmod +x start.sh && ./start.sh",
+    "start:prod": "npx prisma db push --accept-data-loss && (node dist/src/main.js || node dist/main.js)",
+    "start:railway": "npx prisma db push --accept-data-loss && (node dist/src/main.js || node dist/main.js)",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "test": "jest",
     "test:e2e": "jest --config ./test/jest-e2e.json",
