@@ -1,15 +1,43 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 
+import { IsString, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
+
 export class CheckoutDto {
+  @IsString()
+  @IsNotEmpty()
   tenantId: string;
+
+  @IsString()
+  @IsNotEmpty()
   planId: string;
+
+  @IsNumber()
+  @IsOptional()
   pointsToUse?: number;
+
+  @IsString()
+  @IsOptional()
   paymentMethod?: string;
+
+  @IsString()
+  @IsOptional()
   gstNumber?: string;
+
+  @IsString()
+  @IsOptional()
   address?: string;
+
+  @IsString()
+  @IsOptional()
   city?: string;
+
+  @IsString()
+  @IsOptional()
   state?: string;
+
+  @IsString()
+  @IsOptional()
   pincode?: string;
 }
 
