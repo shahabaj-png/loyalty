@@ -19,6 +19,11 @@ export class TenantsService {
     slug: string;
     description?: string;
     logo?: string;
+    gstNumber?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
     settings?: any;
     webhookUrl?: string;
   }) {

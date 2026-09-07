@@ -9,6 +9,11 @@ class CreateTenantDto {
   @IsString() slug: string;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() logo?: string;
+  @IsOptional() @IsString() gstNumber?: string;
+  @IsOptional() @IsString() address?: string;
+  @IsOptional() @IsString() city?: string;
+  @IsOptional() @IsString() state?: string;
+  @IsOptional() @IsString() pincode?: string;
   @IsOptional() @IsObject() settings?: any;
   @IsOptional() @IsString() webhookUrl?: string;
 }

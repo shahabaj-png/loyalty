@@ -217,4 +217,25 @@ export class OrdersService {
     if (!order) throw new NotFoundException('Order not found');
     return order;
   }
+
+  async initiateRazorpayOrder(orderId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Order not found');
+
+    const razorpayOrderId = `rzp_order_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_loyalty_platform_123';
+
+    return {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      razorpayOrderId,
+      keyId,
+      amountPaise: order.total,
+      currency: 'INR',
+      notes: {
+        tenantId: order.tenantId,
+        userId: order.userId,
+      },
+    };
+  }
 }

@@ -43,6 +43,14 @@ export class PointsController {
     return this.pointsService.getBalance(req.user.id);
   }
 
+  @Get('wallet-summary')
+  @UseGuards(AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get total wallet and ledger metrics (admin)' })
+  async getWalletSummary(@Query('userId') userId?: string) {
+    return this.pointsService.getWalletSummary(userId);
+  }
+
   @Get('transactions')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

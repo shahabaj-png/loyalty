@@ -46,6 +46,7 @@ export const api = {
     rules: () => client.get('/points/rules').then(r => r.data),
     createRule: (data: any) => client.post('/points/rules', data).then(r => r.data),
     earn: (data: any) => client.post('/points/earn', data).then(r => r.data),
+    walletSummary: (userId?: string) => client.get('/points/wallet-summary', { params: { userId } }).then(r => r.data),
   },
   challenges: {
     list: () => client.get('/gamification/challenges').then(r => r.data),
@@ -80,6 +81,7 @@ export const api = {
   orders: {
     checkout: (data: any) => client.post('/orders/checkout', data).then(r => r.data),
     pay: (orderId: string, data?: any) => client.post(`/orders/${orderId}/pay`, data || {}).then(r => r.data),
+    initiateRazorpay: (orderId: string) => client.post(`/orders/${orderId}/initiate-razorpay`).then(r => r.data),
     list: (params?: any) => client.get('/orders', { params }).then(r => r.data),
     get: (id: string) => client.get(`/orders/${id}`).then(r => r.data),
   },

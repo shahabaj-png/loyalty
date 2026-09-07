@@ -146,6 +146,52 @@ export class PointsService {
     return { ...user, expiringIn30Days: pendingExpiry._sum.amount || 0, multiplier: this.getTierMultiplier(user.tier) };
   }
 
+  async getWalletSummary(userId?: string) {
+    const where = userId ? { userId } : {};
+
+    const [earnedAgg, redeemedAgg, expiredAgg, userCount] = await Promise.all([
+      this.prisma.pointTransaction.aggregate({
+        where: { ...where, type: { in: ['EARN', 'BONUS', 'ADJUSTMENT'] } },
+        _sum: { amount: true },
+      }),
+      this.prisma.pointTransaction.aggregate({
+        where: { ...where, type: 'REDEEM' },
+        _sum: { amount: true },
+      }),
+      this.prisma.pointTransaction.aggregate({
+        where: { ...where, type: 'EXPIRE' },
+        _sum: { amount: true },
+      }),
+      this.prisma.user.aggregate({
+        _sum: { availablePoints: true },
+      }),
+    ]);
+
+    const totalEarned = Math.abs(earnedAgg._sum.amount || 0);
+    const totalRedeemed = Math.abs(redeemedAgg._sum.amount || 0);
+    const totalExpired = Math.abs(expiredAgg._sum.amount || 0);
+    const availablePoints = userId
+      ? (await this.prisma.user.findUnique({ where: { id: userId }, select: { availablePoints: true } }))?.availablePoints || 0
+      : userCount._sum.availablePoints || 0;
+
+    const recentLedger = await this.prisma.pointTransaction.findMany({
+      where,
+      take: 50,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { id: true, email: true, firstName: true, lastName: true } },
+      },
+    });
+
+    return {
+      availablePoints,
+      totalEarned,
+      totalRedeemed,
+      totalExpired,
+      recentLedger,
+    };
+  }
+
   // ---- Point Rules Engine ----
   async processEvent(eventName: string, userId: string, eventData: Record<string, any>) {
     const rules = await this.prisma.pointRule.findMany({ where: { event: eventName, isActive: true } });

@@ -45,4 +45,12 @@ export class OrdersController {
   async getOrderById(@Param('id') id: string) {
     return this.ordersService.getOrderById(id);
   }
+
+  @Post(':id/initiate-razorpay')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Initiate Razorpay payment gateway order' })
+  async initiateRazorpayOrder(@Param('id') id: string) {
+    return this.ordersService.initiateRazorpayOrder(id);
+  }
 }

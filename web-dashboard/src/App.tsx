@@ -64,6 +64,7 @@ const NAV_ITEMS = [
   { path: '/tenants', label: 'Tenants', icon: '🏢' },
   { path: '/subscriptions', label: 'Subscriptions', icon: '💳' },
   { path: '/checkout', label: 'Cart & Checkout', icon: '🛒' },
+  { path: '/wallet', label: 'Loyalty Wallet', icon: '👛' },
   { path: '/age-verification', label: 'Age Verification (21+)', icon: '🔞' },
 ];
 
@@ -592,7 +593,10 @@ function ServicePlansPage() {
 function TenantsPage() {
   const [tenants, setTenants] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', slug: '', description: '' });
+  const [selectedKeysTenant, setSelectedKeysTenant] = useState<any>(null);
+  const [form, setForm] = useState({
+    name: '', slug: '', description: '', gstNumber: '', address: '', city: '', state: '', pincode: ''
+  });
 
   useEffect(() => {
     api.tenants.list().then(setTenants).catch(() => {});
@@ -602,17 +606,17 @@ function TenantsPage() {
     try {
       await api.tenants.create(form);
       setShowForm(false);
-      setForm({ name: '', slug: '', description: '' });
+      setForm({ name: '', slug: '', description: '', gstNumber: '', address: '', city: '', state: '', pincode: '' });
       api.tenants.list().then(setTenants);
-    } catch (err) {
-      alert('Error creating tenant');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Error creating tenant');
     }
   };
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Tenants</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Tenants & B2B Businesses</h1>
         <button onClick={() => setShowForm(!showForm)}
           className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700">
           + Create Tenant
@@ -621,16 +625,65 @@ function TenantsPage() {
 
       {showForm && (
         <div className="bg-white rounded-xl p-6 shadow-sm border mb-6">
-          <h3 className="font-semibold mb-4">New Tenant</h3>
+          <h3 className="font-semibold mb-4 text-gray-900">New B2B Tenant Registration</h3>
           <div className="grid grid-cols-2 gap-4">
-            <input placeholder="Tenant Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-              className="border rounded-lg px-4 py-2" />
-            <input placeholder="Slug (e.g. my-business)" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })}
-              className="border rounded-lg px-4 py-2" />
+            <input placeholder="Tenant Name (e.g. Warehouse CEO)" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+              className="border rounded-lg px-4 py-2 text-sm" />
+            <input placeholder="Slug (e.g. warehouse-ceo)" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })}
+              className="border rounded-lg px-4 py-2 text-sm" />
             <input placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
-              className="border rounded-lg px-4 py-2 col-span-2" />
-            <button onClick={handleCreate} className="bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 col-span-2">
-              Create Tenant
+              className="border rounded-lg px-4 py-2 col-span-2 text-sm" />
+            <input placeholder="GSTIN Number (e.g. 22AAAAA0000A1Z5)" value={form.gstNumber} onChange={e => setForm({ ...form, gstNumber: e.target.value })}
+              className="border rounded-lg px-4 py-2 uppercase font-mono text-sm" />
+            <input placeholder="Street Address" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })}
+              className="border rounded-lg px-4 py-2 text-sm" />
+            <input placeholder="City" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })}
+              className="border rounded-lg px-4 py-2 text-sm" />
+            <input placeholder="State" value={form.state} onChange={e => setForm({ ...form, state: e.target.value })}
+              className="border rounded-lg px-4 py-2 text-sm" />
+            <input placeholder="Pincode" value={form.pincode} onChange={e => setForm({ ...form, pincode: e.target.value })}
+              className="border rounded-lg px-4 py-2 text-sm col-span-2" />
+            <button onClick={handleCreate} className="bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 col-span-2 text-sm">
+              Save & Provision Tenant
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Integration API Credentials Modal */}
+      {selectedKeysTenant && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">🔑 External B2B Integration API Keys</h3>
+            <p className="text-sm text-gray-500 mb-4">Provisioned for: <span className="font-semibold text-gray-900">{selectedKeysTenant.name}</span></p>
+
+            <div className="space-y-3 font-mono text-xs">
+              <div>
+                <label className="block text-gray-500 text-[10px] uppercase mb-1">API Key</label>
+                <div className="bg-gray-100 p-2 rounded border flex justify-between items-center">
+                  <span className="truncate">{selectedKeysTenant.apiKey}</span>
+                  <button onClick={() => navigator.clipboard.writeText(selectedKeysTenant.apiKey)} className="text-indigo-600 font-sans font-medium text-xs ml-2">Copy</button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-gray-500 text-[10px] uppercase mb-1">API Secret</label>
+                <div className="bg-gray-100 p-2 rounded border flex justify-between items-center">
+                  <span className="truncate">{selectedKeysTenant.apiSecret}</span>
+                  <button onClick={() => navigator.clipboard.writeText(selectedKeysTenant.apiSecret)} className="text-indigo-600 font-sans font-medium text-xs ml-2">Copy</button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-gray-500 text-[10px] uppercase mb-1">Sample Integration Request</label>
+                <pre className="bg-gray-900 text-green-400 p-3 rounded text-[11px] overflow-x-auto">
+{`curl -X GET https://loyalty-production-033a.up.railway.app/api/v1/users \\
+  -H "x-api-key: ${selectedKeysTenant.apiKey}"`}
+                </pre>
+              </div>
+            </div>
+
+            <button onClick={() => setSelectedKeysTenant(null)}
+              className="w-full bg-gray-900 text-white py-2 rounded-lg font-medium hover:bg-gray-800 mt-6 text-sm">
+              Close
             </button>
           </div>
         </div>
@@ -641,17 +694,22 @@ function TenantsPage() {
           <div key={tenant.id} className="bg-white rounded-xl p-6 shadow-sm border">
             <div className="flex justify-between items-start">
               <div className="flex-1">
-                <h3 className="font-bold text-lg text-gray-900">{tenant.name}</h3>
-                <p className="text-sm text-gray-500 mt-1">{tenant.description}</p>
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">API Key:</span>
-                    <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">{tenant.apiKey}</code>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">Slug:</span>
-                    <span className="text-xs font-medium">{tenant.slug}</span>
-                  </div>
+                <div className="flex items-center gap-3">
+                  <h3 className="font-bold text-lg text-gray-900">{tenant.name}</h3>
+                  {tenant.gstNumber && (
+                    <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded font-mono">GST: {tenant.gstNumber}</span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500 mt-1">{tenant.description || 'No description provided'}</p>
+                {tenant.address && (
+                  <p className="text-xs text-gray-400 mt-1">📍 {tenant.address}, {tenant.city}, {tenant.state} - {tenant.pincode}</p>
+                )}
+                <div className="mt-4 flex items-center gap-4">
+                  <button onClick={() => setSelectedKeysTenant(tenant)}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                    🔑 View Integration API Keys
+                  </button>
+                  <span className="text-xs text-gray-400">Slug: <code className="font-mono">{tenant.slug}</code></span>
                 </div>
               </div>
               <span className={`text-xs px-2 py-1 rounded-full ${
@@ -662,6 +720,69 @@ function TenantsPage() {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── LOYALTY WALLET & LEDGER PAGE (Matching Diagram Wallet & Ledger) ───
+function LoyaltyWalletPage() {
+  const [summary, setSummary] = useState<any>(null);
+
+  useEffect(() => {
+    api.points.walletSummary().then(setSummary).catch(() => {});
+  }, []);
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">👛 Loyalty Wallet & Points Ledger</h1>
+      <p className="text-gray-500 mb-6">Real-time point balances, transaction ledger, and wallet activity</p>
+
+      {/* 4 Cards matching diagram */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard title="Available Points Wallet" value={summary?.availablePoints?.toLocaleString() || '0'} icon="💎" />
+        <StatCard title="Total Earned Points" value={summary?.totalEarned?.toLocaleString() || '0'} change="+100%" icon="📈" />
+        <StatCard title="Total Redeemed Points" value={summary?.totalRedeemed?.toLocaleString() || '0'} icon="🎁" />
+        <StatCard title="Total Expired Points" value={summary?.totalExpired?.toLocaleString() || '0'} icon="⌛" />
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+          <h3 className="font-bold text-gray-900 text-sm">📜 Points Ledger Transaction Log</h3>
+          <span className="text-xs text-gray-500">Showing last 50 transactions</span>
+        </div>
+        <table className="w-full text-left">
+          <thead className="bg-gray-50 border-b">
+            <tr>
+              {['User', 'Type', 'Amount', 'Description', 'Source', 'Date'].map(h => (
+                <th key={h} className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y text-sm">
+            {(summary?.recentLedger || []).map((t: any) => (
+              <tr key={t.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 font-medium text-gray-900">
+                  {t.user?.firstName} {t.user?.lastName} <span className="text-xs text-gray-400">({t.user?.email})</span>
+                </td>
+                <td className="px-6 py-4">
+                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                    t.type === 'EARN' ? 'bg-green-100 text-green-800' :
+                    t.type === 'REDEEM' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {t.type}
+                  </span>
+                </td>
+                <td className={`px-6 py-4 font-bold ${t.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {t.amount > 0 ? `+${t.amount.toLocaleString()}` : t.amount.toLocaleString()}
+                </td>
+                <td className="px-6 py-4 text-gray-600">{t.description}</td>
+                <td className="px-6 py-4 font-mono text-xs text-gray-500">{t.source}</td>
+                <td className="px-6 py-4 text-gray-400 text-xs">{new Date(t.createdAt).toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -1055,6 +1176,7 @@ export default function App() {
                 <Route path="/tenants" element={<TenantsPage />} />
                 <Route path="/subscriptions" element={<SubscriptionsPage />} />
                 <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/wallet" element={<LoyaltyWalletPage />} />
                 <Route path="/age-verification" element={<AgeVerificationPage />} />
               </Routes>
             </Layout>
