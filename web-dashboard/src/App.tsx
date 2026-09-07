@@ -175,10 +175,28 @@ function UsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '', tier: 'BRONZE', role: 'CUSTOMER' });
+
+  const loadUsers = () => {
+    api.users.list({ page, limit: 20, search: search || undefined }).then(r => setUsers(r.data || r || [])).catch(() => {});
+  };
 
   useEffect(() => {
-    api.users.list({ page, limit: 20, search: search || undefined }).then(r => setUsers(r.data || r || [])).catch(() => {});
+    loadUsers();
   }, [page, search]);
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.users.create(form);
+      setShowForm(false);
+      setForm({ firstName: '', lastName: '', email: '', password: '', phone: '', tier: 'BRONZE', role: 'CUSTOMER' });
+      loadUsers();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Error creating user');
+    }
+  };
 
   const TIER_COLORS: Record<string, string> = {
     BRONZE: 'bg-orange-100 text-orange-800', SILVER: 'bg-gray-100 text-gray-800',
@@ -189,9 +207,44 @@ function UsersPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-        <input type="text" placeholder="Search users..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-          className="border rounded-lg px-4 py-2 w-64 focus:ring-2 focus:ring-indigo-500 outline-none" />
+        <div className="flex gap-4">
+          <input type="text" placeholder="Search users..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+            className="border rounded-lg px-4 py-2 w-64 focus:ring-2 focus:ring-indigo-500 outline-none text-sm" />
+          <button onClick={() => setShowForm(!showForm)}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 text-sm">
+            + Add User
+          </button>
+        </div>
       </div>
+
+      {showForm && (
+        <div className="bg-white rounded-xl p-6 shadow-sm border mb-6">
+          <h3 className="font-semibold mb-4 text-gray-900">Create New User</h3>
+          <form onSubmit={handleCreateUser} className="grid grid-cols-2 gap-4">
+            <input placeholder="First Name" value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })}
+              className="border rounded-lg px-4 py-2 text-sm" required />
+            <input placeholder="Last Name" value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })}
+              className="border rounded-lg px-4 py-2 text-sm" required />
+            <input placeholder="Email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+              className="border rounded-lg px-4 py-2 text-sm" required />
+            <input placeholder="Password" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })}
+              className="border rounded-lg px-4 py-2 text-sm" required />
+            <input placeholder="Phone (optional)" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
+              className="border rounded-lg px-4 py-2 text-sm" />
+            <select value={form.tier} onChange={e => setForm({ ...form, tier: e.target.value })}
+              className="border rounded-lg px-4 py-2 text-sm">
+              <option value="BRONZE">Bronze Tier</option>
+              <option value="SILVER">Silver Tier</option>
+              <option value="GOLD">Gold Tier</option>
+              <option value="PLATINUM">Platinum Tier</option>
+            </select>
+            <button type="submit" className="bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 col-span-2 text-sm">
+              Save User
+            </button>
+          </form>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b">
@@ -218,10 +271,10 @@ function UsersPage() {
         </table>
         <div className="flex justify-between items-center p-4 border-t">
           <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-            className="px-4 py-2 border rounded-lg disabled:opacity-50">Previous</button>
+            className="px-4 py-2 border rounded-lg disabled:opacity-50 text-sm">Previous</button>
           <span className="text-sm text-gray-500">Page {page}</span>
           <button onClick={() => setPage(p => p + 1)} disabled={users.length < 20}
-            className="px-4 py-2 border rounded-lg disabled:opacity-50">Next</button>
+            className="px-4 py-2 border rounded-lg disabled:opacity-50 text-sm">Next</button>
         </div>
       </div>
     </div>

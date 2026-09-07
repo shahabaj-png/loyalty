@@ -1,8 +1,18 @@
-import { Controller, Get, Put, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
-import { IsOptional, IsString, IsDateString } from 'class-validator';
+import { IsOptional, IsString, IsDateString, IsEmail } from 'class-validator';
 import { UsersService } from './users.service';
 import { JwtAuthGuard, AdminGuard } from '../auth/jwt.guard';
+
+export class CreateUserDto {
+  @IsEmail() email: string;
+  @IsString() password: string;
+  @IsString() firstName: string;
+  @IsString() lastName: string;
+  @IsOptional() @IsString() phone?: string;
+  @IsOptional() @IsString() role?: string;
+  @IsOptional() @IsString() tier?: string;
+}
 
 export class UpdateProfileDto {
   @IsOptional() @IsString() firstName?: string;
@@ -16,6 +26,14 @@ export class UpdateProfileDto {
 @Controller('users')
 export class UsersController {
   constructor(private usersService: UsersService) {}
+
+  @Post()
+  @UseGuards(AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a new user (admin)' })
+  async createUser(@Body() dto: CreateUserDto) {
+    return this.usersService.createUser(dto);
+  }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)

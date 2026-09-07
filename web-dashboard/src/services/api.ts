@@ -34,6 +34,7 @@ export const api = {
   users: {
     list: (params?: any) => client.get('/users', { params }).then(r => r.data),
     get: (id: string) => client.get(`/users/${id}`).then(r => r.data),
+    create: (data: any) => client.post('/users', data).then(r => r.data),
   },
   rewards: {
     list: () => client.get('/rewards/catalog').then(r => r.data),

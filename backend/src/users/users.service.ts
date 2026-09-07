@@ -1,10 +1,36 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { RedisService } from '../common/redis.service';
+import * as bcrypt from 'bcryptjs';
+import { nanoid } from 'nanoid';
 
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService, private redis: RedisService) {}
+
+  async createUser(dto: { email: string; password: string; firstName: string; lastName: string; role?: string; tier?: string; phone?: string }) {
+    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (existing) throw new BadRequestException('User with this email already exists');
+
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+    const referralCode = nanoid(8).toUpperCase();
+
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        passwordHash,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        phone: dto.phone || null,
+        role: (dto.role as any) || 'CUSTOMER',
+        tier: (dto.tier as any) || 'BRONZE',
+        referralCode,
+      },
+    });
+
+    const { passwordHash: _, faceVector: __, ...safe } = user;
+    return safe;
+  }
 
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
