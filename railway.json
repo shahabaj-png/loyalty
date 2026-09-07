@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "cd backend && node dist/src/main",
+    "startCommand": "cd backend && npx prisma db push --accept-data-loss && node dist/src/main",
     "restartPolicyType": "ON_FAILURE"
   }
 }
