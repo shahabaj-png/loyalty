@@ -273,7 +273,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           )}
         </header>
         <main className="flex-1 p-8 overflow-auto">
-          {!isAdmin || viewMode === 'CUSTOMER' ? <CustomerPortalPage currentUser={currentUser} /> : React.isValidElement(children) ? React.cloneElement(children as React.ReactElement<any>, { currentUser }) : children}
+          {React.isValidElement(children) ? React.cloneElement(children as React.ReactElement<any>, { currentUser }) : children}
         </main>
       </div>
     </div>
