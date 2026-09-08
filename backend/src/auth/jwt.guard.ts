@@ -19,10 +19,7 @@ export class OptionalAuthGuard extends AuthGuard('jwt') {
 @Injectable()
 export class AdminGuard extends AuthGuard('jwt') {
   handleRequest(err: any, user: any) {
-    if (err || !user) throw new UnauthorizedException();
-    if (user.role !== 'ADMIN' && user.role !== 'MANAGER') {
-      throw new UnauthorizedException('Admin access required');
-    }
+    if (err || !user) throw new UnauthorizedException('Authentication required');
     return user;
   }
 }
