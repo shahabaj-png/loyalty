@@ -170,8 +170,9 @@ export class OrdersService {
         });
       }
 
-      // 2. Award new points for purchase (10% cashback in points)
-      const pointsEarned = Math.floor(order.total / 100 * 0.1);
+      // 2. Award new points for purchase (10% cashback in points, minimum 10 points for subscription order)
+      const calculatedPoints = Math.floor((order.total / 100) * 10);
+      const pointsEarned = Math.max(10, calculatedPoints);
       if (pointsEarned > 0) {
         await this.prisma.user.update({
           where: { id: order.userId },
@@ -188,7 +189,7 @@ export class OrdersService {
             type: 'EARN',
             amount: pointsEarned,
             balance: 0,
-            description: `Earned points for B2B Order #${order.orderNumber}`,
+            description: `Earned 10% Cashback for B2B Subscription Order #${order.orderNumber}`,
             source: 'B2B_CHECKOUT',
           },
         });
