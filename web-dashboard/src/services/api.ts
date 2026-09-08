@@ -23,6 +23,7 @@ client.interceptors.response.use(
 export const api = {
   auth: {
     login: (data: { email: string; password: string }) => client.post('/auth/login', data).then(r => r.data),
+    register: (data: { email: string; password: string; firstName: string; lastName: string; phone?: string; referralCode?: string }) => client.post('/auth/register', data).then(r => r.data),
   },
   analytics: {
     dashboard: () => client.get('/analytics/dashboard').then(r => r.data),

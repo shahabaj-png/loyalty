@@ -7,11 +7,14 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 
-// ─── LOGIN PAGE ───
+// ─── LOGIN & REGISTER PAGE ───
 function LoginPage() {
   const { login } = useAdminStore();
+  const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -20,33 +23,67 @@ function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await api.auth.login({ email, password });
-      login(res.accessToken);
+      if (isRegister) {
+        const res = await api.auth.register({ email, password, firstName, lastName });
+        login(res.accessToken);
+      } else {
+        const res = await api.auth.login({ email, password });
+        login(res.accessToken);
+      }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.response?.data?.message || (isRegister ? 'Registration failed' : 'Login failed'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-        <p className="text-gray-500 mb-6">Loyalty Platform Management</p>
-        {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">{error}</div>}
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">🏅 Loyalty Platform</h1>
+        <p className="text-gray-500 mb-6">{isRegister ? 'Create a New Account' : 'Sign in to access your portal'}</p>
+        
+        {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm font-medium">{error}</div>}
+        
         <form onSubmit={handleSubmit}>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          {isRegister && (
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">First Name</label>
+                <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Last Name</label>
+                <input type="text" value={lastName} onChange={e => setLastName(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
+              </div>
+            </div>
+          )}
+
+          <label className="block text-xs font-medium text-gray-700 mb-1">Email Address</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-            className="w-full border rounded-lg px-4 py-2 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none" required />
-          <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            className="w-full border rounded-lg px-4 py-2 mb-4 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
+
+          <label className="block text-xs font-medium text-gray-700 mb-1">Password</label>
           <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-            className="w-full border rounded-lg px-4 py-2 mb-6 focus:ring-2 focus:ring-indigo-500 outline-none" required />
+            className="w-full border rounded-lg px-4 py-2 mb-6 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
+
           <button type="submit" disabled={loading}
-            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50">
-            {loading ? 'Signing in...' : 'Sign In'}
+            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+            {loading ? (isRegister ? 'Creating Account...' : 'Signing in...') : (isRegister ? 'Create Account & Sign In' : 'Sign In')}
           </button>
         </form>
+
+        <div className="mt-6 text-center border-t pt-4">
+          <p className="text-xs text-gray-500">
+            {isRegister ? 'Already have an account?' : 'New customer or store owner?'}
+            <button onClick={() => { setIsRegister(!isRegister); setError(''); }}
+              className="ml-1.5 font-bold text-indigo-600 hover:underline focus:outline-none">
+              {isRegister ? 'Sign In Here' : 'Create New Account'}
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );
