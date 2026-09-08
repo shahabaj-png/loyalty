@@ -1035,23 +1035,32 @@ function TenantsPage() {
 }
 
 // ─── LOYALTY WALLET & LEDGER PAGE ───
-function LoyaltyWalletPage() {
+function LoyaltyWalletPage({ currentUser }: { currentUser?: any }) {
   const [summary, setSummary] = useState<any>(null);
-  const [selectedUser, setSelectedUser] = useState<string>('ALL');
+  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.email === 'admin@loyaltyplatform.com';
+  const [selectedUser, setSelectedUser] = useState<string>(isAdmin ? 'ALL' : currentUser?.id || '');
   const [userList, setUserList] = useState<any[]>([]);
 
   useEffect(() => {
-    api.users.list({ limit: 100 }).then(u => setUserList(u.data || u || [])).catch(() => {});
-  }, []);
+    if (isAdmin) {
+      api.users.list({ limit: 100 }).then(u => setUserList(u.data || u || [])).catch(() => {});
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin && currentUser?.id) {
+      setSelectedUser(currentUser.id);
+    }
+  }, [currentUser, isAdmin]);
 
   const fetchWallet = (userId?: string) => {
-    const targetId = userId === 'ALL' ? undefined : userId;
+    const targetId = (userId === 'ALL' || !userId) ? (isAdmin ? undefined : currentUser?.id) : userId;
     api.points.walletSummary(targetId).then(setSummary).catch(() => {});
   };
 
   useEffect(() => {
     fetchWallet(selectedUser);
-  }, [selectedUser]);
+  }, [selectedUser, currentUser]);
 
   return (
     <div>
@@ -1060,18 +1069,20 @@ function LoyaltyWalletPage() {
           <h1 className="text-2xl font-bold text-gray-900 mb-1">👛 Loyalty Wallet & Points Ledger</h1>
           <p className="text-gray-500 text-sm">Real-time point balances, transaction ledger, and wallet activity</p>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-gray-600">Filter Wallet User:</label>
-          <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)}
-            className="border rounded-lg px-3 py-2 text-sm bg-white font-medium shadow-sm">
-            <option value="ALL">🌐 System Platform (All Users Aggregate)</option>
-            {userList.map(u => (
-              <option key={u.id} value={u.id}>
-                👤 {u.firstName} {u.lastName} ({u.email}) - {u.availablePoints?.toLocaleString()} pts
-              </option>
-            ))}
-          </select>
-        </div>
+        {isAdmin && (
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-gray-600">Filter Wallet User:</label>
+            <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)}
+              className="border rounded-lg px-3 py-2 text-sm bg-white font-medium shadow-sm">
+              <option value="ALL">🌐 System Platform (All Users Aggregate)</option>
+              {userList.map(u => (
+                <option key={u.id} value={u.id}>
+                  👤 {u.firstName} {u.lastName} ({u.email}) - {u.availablePoints?.toLocaleString()} pts
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* 4 Cards matching diagram */}
