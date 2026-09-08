@@ -1297,12 +1297,108 @@ function AgeVerificationPage() {
   );
 }
 
+// ─── CUSTOMER PORTAL PAGE ───
+function CustomerPortalPage() {
+  const [profile, setProfile] = useState<any>(null);
+  const [transactions, setTransactions] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.users.list({ limit: 100 }).then(res => {
+      const users = res.data || res || [];
+      if (users.length > 0) {
+        setProfile(users[0]);
+        api.points.walletSummary(users[0].id).then(w => setTransactions(w.recentLedger || []));
+      }
+    }).catch(() => {});
+  }, []);
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 text-white shadow-lg mb-8">
+        <div className="flex justify-between items-start">
+          <div>
+            <span className="bg-white/20 text-xs px-3 py-1 rounded-full font-semibold uppercase tracking-wider">
+              {profile?.tier || 'BRONZE'} TIER MEMBER
+            </span>
+            <h1 className="text-3xl font-extrabold mt-3">Welcome, {profile?.firstName || 'Customer'}! 👋</h1>
+            <p className="text-indigo-100 text-sm mt-1">{profile?.email}</p>
+          </div>
+          <div className="text-right bg-white/10 p-4 rounded-xl backdrop-blur-md">
+            <p className="text-xs text-indigo-200">Available Points</p>
+            <p className="text-3xl font-black text-yellow-300 mt-1">💎 {profile?.availablePoints?.toLocaleString() || 0}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="bg-white rounded-xl p-6 shadow-sm border">
+          <h3 className="font-bold text-gray-900 mb-2">🎁 Your Rewards Catalog</h3>
+          <p className="text-xs text-gray-500 mb-4">Redeem your points for exclusive discounts & gift vouchers</p>
+          <Link to="/rewards" className="inline-block bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-100">
+            Browse & Redeem Rewards ➔
+          </Link>
+        </div>
+        <div className="bg-white rounded-xl p-6 shadow-sm border">
+          <h3 className="font-bold text-gray-900 mb-2">🔞 Altria Age Verification (21+)</h3>
+          <p className="text-xs text-gray-500 mb-4">Verify your age to unlock digital tobacco coupons at stores</p>
+          <Link to="/age-verification" className="inline-block bg-green-50 text-green-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-100">
+            Verify Age Now ➔
+          </Link>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div className="p-4 border-b bg-gray-50">
+          <h3 className="font-bold text-gray-900 text-sm">📜 Your Points Activity</h3>
+        </div>
+        <div className="divide-y text-sm">
+          {transactions.map(t => (
+            <div key={t.id} className="p-4 flex justify-between items-center hover:bg-gray-50">
+              <div>
+                <p className="font-semibold text-gray-900">{t.description}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{new Date(t.createdAt).toLocaleString()}</p>
+              </div>
+              <span className={`font-bold ${t.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {t.amount > 0 ? `+${t.amount}` : t.amount} pts
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── LAYOUT ───
 function Layout({ children }: { children: React.ReactNode }) {
+  const [viewMode, setViewMode] = useState<'ADMIN' | 'CUSTOMER'>('ADMIN');
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 p-8 bg-gray-50 overflow-auto">{children}</main>
+      <div className="flex-1 flex flex-col min-w-0 bg-gray-50">
+        <header className="bg-white border-b px-8 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Mode:</span>
+            <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${viewMode === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>
+              {viewMode === 'ADMIN' ? '🛠️ Enterprise Admin & Retailer Portal' : '👤 Customer App View'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setViewMode('ADMIN')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${viewMode === 'ADMIN' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+              🛠️ Admin/Retailer View
+            </button>
+            <button onClick={() => setViewMode('CUSTOMER')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${viewMode === 'CUSTOMER' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+              👤 Customer View
+            </button>
+          </div>
+        </header>
+        <main className="flex-1 p-8 overflow-auto">
+          {viewMode === 'CUSTOMER' ? <CustomerPortalPage /> : children}
+        </main>
+      </div>
     </div>
   );
 }
