@@ -601,12 +601,13 @@ function ServicePlansPage() {
       }
 
       const generatedSlug = form.slug || form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const priceInPaise = Math.round(parseFloat(form.price) * 100);
 
       await api.servicePlans.create({ 
         name: form.name,
         slug: generatedSlug,
         description: form.description || form.name,
-        price: parseInt(form.price, 10), 
+        price: priceInPaise, 
         billingCycle: form.billingCycle,
         features: parsedFeatures 
       });
@@ -639,7 +640,7 @@ function ServicePlansPage() {
               className="border rounded-lg px-4 py-2" />
             <input placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
               className="border rounded-lg px-4 py-2 col-span-2" />
-            <input placeholder="Price (in paise, e.g. 99900 for ₹999)" type="number" value={form.price}
+            <input placeholder="Price in ₹ Rupees (e.g. 100000 for 1 Lakh)" type="number" value={form.price}
               onChange={e => setForm({ ...form, price: e.target.value })} className="border rounded-lg px-4 py-2" />
             <select value={form.billingCycle} onChange={e => setForm({ ...form, billingCycle: e.target.value })}
               className="border rounded-lg px-4 py-2">
@@ -647,7 +648,7 @@ function ServicePlansPage() {
               <option value="QUARTERLY">Quarterly</option>
               <option value="YEARLY">Yearly</option>
             </select>
-            <textarea placeholder='Features (JSON, e.g. {"maxUsers": 10, "apiAccess": true})' value={form.features}
+            <textarea placeholder='Features (JSON or plain text, e.g. {"maxUsers": 100})' value={form.features}
               onChange={e => setForm({ ...form, features: e.target.value })} className="border rounded-lg px-4 py-2 col-span-2" rows={3} />
             <button onClick={handleCreate} className="bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 col-span-2">
               Create Plan
@@ -665,7 +666,9 @@ function ServicePlansPage() {
             </div>
             <p className="text-sm text-gray-500 mb-4">{plan.description}</p>
             <div className="border-t pt-4">
-              <p className="text-2xl font-bold text-indigo-600">₹{(plan.price / 100).toFixed(2)}</p>
+              <p className="text-2xl font-bold text-indigo-600">
+                ₹{(plan.price > 10000 ? (plan.price / 100) : plan.price).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+              </p>
               <p className="text-xs text-gray-400">per {plan.billingCycle.toLowerCase()}</p>
             </div>
           </div>
