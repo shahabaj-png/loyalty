@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { AgeVerificationService, VerifyAgeDto } from './age-verification.service';
+import { AgeVerificationService } from './age-verification.service';
+import { VerifyAgeDto } from './verify-age.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 
 @ApiTags('Age Verification (Altria Compliance)')
