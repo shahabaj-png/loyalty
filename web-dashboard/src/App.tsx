@@ -273,7 +273,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           )}
         </header>
         <main className="flex-1 p-8 overflow-auto">
-          {!isAdmin || viewMode === 'CUSTOMER' ? <CustomerPortalPage currentUser={currentUser} /> : children}
+          {!isAdmin || viewMode === 'CUSTOMER' ? <CustomerPortalPage currentUser={currentUser} /> : React.isValidElement(children) ? React.cloneElement(children as React.ReactElement<any>, { currentUser }) : children}
         </main>
       </div>
     </div>
@@ -470,13 +470,19 @@ function UsersPage() {
 }
 
 // ─── REWARDS PAGE ───
-function RewardsPage() {
+function RewardsPage({ currentUser }: { currentUser?: any }) {
   const [rewards, setRewards] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [redeemingId, setRedeemingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', description: '', pointsCost: '', category: 'MERCHANDISE', stock: '' });
+  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.email === 'admin@loyaltyplatform.com';
+
+  const loadRewards = () => {
+    api.rewards.list().then(r => setRewards(r.data || r || [])).catch(() => {});
+  };
 
   useEffect(() => {
-    api.rewards.list().then(r => setRewards(r.data || r || [])).catch(() => {});
+    loadRewards();
   }, []);
 
   const handleCreate = async () => {
@@ -484,56 +490,83 @@ function RewardsPage() {
       await api.rewards.create({ ...form, pointsCost: parseInt(form.pointsCost), stock: parseInt(form.stock) || null });
       setShowForm(false);
       setForm({ name: '', description: '', pointsCost: '', category: 'MERCHANDISE', stock: '' });
-      api.rewards.list().then(r => setRewards(r.data || r || []));
+      loadRewards();
     } catch {}
+  };
+
+  const handleRedeem = async (reward: any) => {
+    setRedeemingId(reward.id);
+    try {
+      const res = await api.points.redeem({ rewardId: reward.id });
+      alert(`🎉 Reward Claimed Successfully!\n\nCoupon Code: ${res.redemptionCode || 'CLAIMED-123'}\nPoints Deducted: -${reward.pointsCost} pts`);
+      loadRewards();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Redemption failed. Check points balance and tier requirements.');
+    } finally {
+      setRedeemingId(null);
+    }
   };
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Rewards Catalog</h1>
-        <button onClick={() => setShowForm(!showForm)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700">
-          + Add Reward
-        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">🎁 Rewards Catalog</h1>
+          <p className="text-sm text-gray-500 mt-1">Browse and redeem points for digital gift vouchers & store discounts</p>
+        </div>
+        {isAdmin && (
+          <button onClick={() => setShowForm(!showForm)}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 text-sm">
+            + Add Reward
+          </button>
+        )}
       </div>
 
-      {showForm && (
+      {showForm && isAdmin && (
         <div className="bg-white rounded-xl p-6 shadow-sm border mb-6">
           <h3 className="font-semibold mb-4">New Reward</h3>
           <div className="grid grid-cols-2 gap-4">
             <input placeholder="Name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-              className="border rounded-lg px-4 py-2" />
+              className="border rounded-lg px-4 py-2 text-sm" />
             <input placeholder="Points Cost" type="number" value={form.pointsCost}
-              onChange={e => setForm({ ...form, pointsCost: e.target.value })} className="border rounded-lg px-4 py-2" />
+              onChange={e => setForm({ ...form, pointsCost: e.target.value })} className="border rounded-lg px-4 py-2 text-sm" />
             <input placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
-              className="border rounded-lg px-4 py-2" />
+              className="border rounded-lg px-4 py-2 text-sm" />
             <input placeholder="Stock (empty = unlimited)" type="number" value={form.stock}
-              onChange={e => setForm({ ...form, stock: e.target.value })} className="border rounded-lg px-4 py-2" />
+              onChange={e => setForm({ ...form, stock: e.target.value })} className="border rounded-lg px-4 py-2 text-sm" />
             <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}
-              className="border rounded-lg px-4 py-2">
+              className="border rounded-lg px-4 py-2 text-sm">
               {['MERCHANDISE', 'DISCOUNT', 'EXPERIENCE', 'DIGITAL', 'CHARITY'].map(c =>
                 <option key={c} value={c}>{c}</option>
               )}
             </select>
-            <button onClick={handleCreate} className="bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700">Create</button>
+            <button onClick={handleCreate} className="bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 text-sm">Create</button>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {rewards.map(r => (
-          <div key={r.id} className="bg-white rounded-xl p-6 shadow-sm border">
-            <div className="flex justify-between items-start">
-              <h3 className="font-semibold text-gray-900">{r.name}</h3>
-              <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">{r.category}</span>
+          <div key={r.id} className="bg-white rounded-xl p-6 shadow-sm border flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-gray-900 text-lg">{r.name}</h3>
+                <span className="text-xs bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full font-semibold">{r.category}</span>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">{r.description}</p>
             </div>
-            <p className="text-sm text-gray-500 mt-2">{r.description}</p>
-            <div className="flex justify-between items-center mt-4 pt-4 border-t">
-              <span className="font-bold text-indigo-600">{r.pointsCost?.toLocaleString()} pts</span>
-              <span className="text-sm text-gray-400">
-                {r.stock != null ? `${r.stock} left` : 'Unlimited'}
-              </span>
+            
+            <div className="mt-6 pt-4 border-t flex flex-col gap-3">
+              <div className="flex justify-between items-center">
+                <span className="font-extrabold text-indigo-600 text-lg">💎 {r.pointsCost?.toLocaleString()} pts</span>
+                <span className="text-xs text-gray-400 font-medium">
+                  {r.stock != null ? `${r.stock} in stock` : 'Unlimited'}
+                </span>
+              </div>
+              <button onClick={() => handleRedeem(r)} disabled={redeemingId === r.id}
+                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2.5 rounded-xl font-bold hover:opacity-90 disabled:opacity-50 text-sm shadow-sm transition-all">
+                {redeemingId === r.id ? 'Claiming Reward...' : '🎁 Redeem Reward'}
+              </button>
             </div>
           </div>
         ))}

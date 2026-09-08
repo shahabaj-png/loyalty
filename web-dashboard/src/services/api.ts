@@ -48,6 +48,7 @@ export const api = {
     rules: () => client.get('/points/rules').then(r => r.data),
     createRule: (data: any) => client.post('/points/rules', data).then(r => r.data),
     earn: (data: any) => client.post('/points/earn', data).then(r => r.data),
+    redeem: (data: { rewardId: string }) => client.post('/points/redeem', data).then(r => r.data),
     walletSummary: (userId?: string) => client.get('/points/wallet-summary', { params: { userId } }).then(r => r.data),
   },
   challenges: {
