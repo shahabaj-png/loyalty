@@ -437,7 +437,7 @@ function UsersPage() {
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b">
             <tr>
-              {['Name', 'Email', 'Tier', 'Points', 'Streak', 'Joined'].map(h => (
+              {['Name', 'Email', 'Tier', 'Age Status (21+)', 'Points', 'Streak', 'Joined'].map(h => (
                 <th key={h} className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
               ))}
             </tr>
@@ -449,6 +449,21 @@ function UsersPage() {
                 <td className="px-6 py-4 text-gray-500">{u.email}</td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${TIER_COLORS[u.tier] || ''}`}>{u.tier}</span>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                      u.identityStatus === 'VERIFIED' ? 'bg-green-100 text-green-800' :
+                      u.identityStatus === 'FAILED' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {u.identityStatus || 'UNVERIFIED'}
+                    </span>
+                    {u.isATC21Plus && (
+                      <span className="bg-purple-100 text-purple-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-purple-300">
+                        🔞 ATC21+
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 font-semibold">{u.totalPoints?.toLocaleString()}</td>
                 <td className="px-6 py-4">{u.streakDays || 0}d 🔥</td>
