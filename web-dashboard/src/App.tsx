@@ -123,12 +123,12 @@ function Sidebar({ currentUser }: { currentUser?: any }) {
   const isSuperAdmin = currentUser?.email === 'admin@loyaltyplatform.com';
   const isBusinessOwner = currentUser?.role === 'BUSINESS_OWNER' || currentUser?.role === 'ADMIN';
 
-  // 3-Tier Granular Access Control
+  // Granular Access Control according to Multi-Tenant SaaS specs
   const visibleNavItems = isSuperAdmin 
-    ? NAV_ITEMS  // Super-Admin sees everything
+    ? NAV_ITEMS  // Super Admin sees all 12 modules
     : isBusinessOwner
-    ? NAV_ITEMS.filter(item => ['/', '/tenants', '/subscriptions', '/checkout', '/rewards', '/points', '/webhooks', '/wallet'].includes(item.path))
-    : NAV_ITEMS.filter(item => ['/rewards', '/wallet', '/age-verification'].includes(item.path));
+    ? NAV_ITEMS.filter(item => ['/', '/users', '/rewards', '/points', '/challenges', '/webhooks', '/service-plans', '/subscriptions', '/checkout', '/wallet', '/age-verification'].includes(item.path)) // Business Owner / Tenant Admin
+    : NAV_ITEMS.filter(item => ['/rewards', '/wallet', '/age-verification'].includes(item.path)); // Customer Member
 
   const roleBadgeText = isSuperAdmin
     ? '👑 Super Admin'
@@ -835,10 +835,11 @@ function WebhooksPage() {
 }
 
 // ─── SERVICE PLANS PAGE ───
-function ServicePlansPage() {
+function ServicePlansPage({ currentUser }: { currentUser?: any }) {
   const [plans, setPlans] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', slug: '', description: '', price: '', billingCycle: 'MONTHLY', features: '{}' });
+  const isSuperAdmin = currentUser?.email === 'admin@loyaltyplatform.com';
 
   useEffect(() => {
     api.servicePlans.list().then(setPlans).catch(() => {});
@@ -884,11 +885,16 @@ function ServicePlansPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Service Plans</h1>
-        <button onClick={() => setShowForm(!showForm)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700">
-          + Create Plan
-        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Service Plans</h1>
+          <p className="text-xs text-gray-500 mt-1">{isSuperAdmin ? 'Manage platform SaaS subscription tiers' : '👁️ View available subscription tiers & features'}</p>
+        </div>
+        {isSuperAdmin && (
+          <button onClick={() => setShowForm(!showForm)}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700">
+            + Create Plan
+          </button>
+        )}
       </div>
 
       {showForm && (
