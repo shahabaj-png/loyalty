@@ -120,20 +120,15 @@ const NAV_ITEMS = [
 function Sidebar({ currentUser }: { currentUser?: any }) {
   const location = useLocation();
   const { logout } = useAdminStore();
-  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.email === 'admin@loyaltyplatform.com';
-
-  const visibleNavItems = isAdmin 
-    ? NAV_ITEMS 
-    : NAV_ITEMS.filter(item => ['/rewards', '/wallet', '/age-verification'].includes(item.path));
 
   return (
     <aside className="w-64 bg-gray-900 text-white min-h-screen flex flex-col">
       <div className="p-6 border-b border-gray-700">
         <h2 className="text-xl font-bold">🏅 Loyalty Platform</h2>
-        <p className="text-xs text-indigo-400 mt-1 font-mono">{currentUser?.email || 'Authenticated User'}</p>
+        <p className="text-xs text-indigo-400 mt-1 font-mono">{currentUser?.email || 'Authenticated Merchant'}</p>
       </div>
       <nav className="flex-1 py-4">
-        {visibleNavItems.map(item => (
+        {NAV_ITEMS.map(item => (
           <Link key={item.path} to={item.path}
             className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
               location.pathname === item.path ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-800'
@@ -266,23 +261,14 @@ function Layout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0 bg-gray-50">
         <header className="bg-white border-b px-8 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active View:</span>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${viewMode === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>
-              {viewMode === 'ADMIN' ? '🛠️ Platform Admin & Retailer Portal' : '👤 Customer App View'}
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Portal Mode:</span>
+            <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-purple-100 text-purple-800">
+              🏬 B2B Business Owner & Loyalty Portal
             </span>
           </div>
-          {isAdmin && (
-            <div className="flex items-center gap-2">
-              <button onClick={() => setViewMode('ADMIN')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${viewMode === 'ADMIN' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
-                🛠️ Admin/Retailer View
-              </button>
-              <button onClick={() => setViewMode('CUSTOMER')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${viewMode === 'CUSTOMER' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
-                👤 Customer View
-              </button>
-            </div>
-          )}
+          <div className="text-xs font-semibold text-gray-500">
+            Connected Business: <span className="text-indigo-600 font-bold">{currentUser?.firstName || 'WarehouseCEO Merchant'}</span>
+          </div>
         </header>
         <main className="flex-1 p-8 overflow-auto">
           {React.isValidElement(children) ? React.cloneElement(children as React.ReactElement<any>, { currentUser }) : children}
