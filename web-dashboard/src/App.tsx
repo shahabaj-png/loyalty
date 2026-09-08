@@ -224,17 +224,26 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [viewMode, setViewMode] = useState<'ADMIN' | 'CUSTOMER'>('ADMIN');
 
   useEffect(() => {
-    api.users.list({ limit: 100 }).then(res => {
-      const users = res.data || res || [];
-      if (users.length > 0) {
-        // Current logged in user profile (e.g. from token decode or profile endpoint)
-        const me = users.find((u: any) => u.email === 'admin@loyaltyplatform.com') || users[0];
+    api.users.me().then(me => {
+      if (me && me.id) {
         setCurrentUser(me);
         if (me.role !== 'ADMIN' && me.email !== 'admin@loyaltyplatform.com') {
           setViewMode('CUSTOMER');
         }
       }
-    }).catch(() => {});
+    }).catch(() => {
+      // Fallback if users.me fails
+      api.users.list({ limit: 10 }).then(res => {
+        const users = res.data || res || [];
+        if (users.length > 0) {
+          const me = users[0];
+          setCurrentUser(me);
+          if (me.role !== 'ADMIN' && me.email !== 'admin@loyaltyplatform.com') {
+            setViewMode('CUSTOMER');
+          }
+        }
+      }).catch(() => {});
+    });
   }, []);
 
   const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.email === 'admin@loyaltyplatform.com';

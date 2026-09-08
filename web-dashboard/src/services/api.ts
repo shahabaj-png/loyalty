@@ -33,6 +33,7 @@ export const api = {
     engagement: () => client.get('/analytics/engagement').then(r => r.data),
   },
   users: {
+    me: () => client.get('/users/me').then(r => r.data),
     list: (params?: any) => client.get('/users', { params }).then(r => r.data),
     get: (id: string) => client.get(`/users/${id}`).then(r => r.data),
     create: (data: any) => client.post('/users', data).then(r => r.data),
