@@ -590,12 +590,14 @@ function ServicePlansPage() {
         return;
       }
 
-      let parsedFeatures = {};
-      try {
-        parsedFeatures = form.features ? JSON.parse(form.features) : {};
-      } catch (jsonErr) {
-        alert('Invalid JSON format in Features field. Example format: {"maxUsers": 10}');
-        return;
+      let parsedFeatures: Record<string, any> = { maxUsers: 100, maxTenants: 5 };
+      if (form.features && form.features.trim()) {
+        try {
+          parsedFeatures = JSON.parse(form.features);
+        } catch {
+          // Fallback: convert plain text into object key-values
+          parsedFeatures = { text: form.features, maxUsers: 100 };
+        }
       }
 
       const generatedSlug = form.slug || form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
