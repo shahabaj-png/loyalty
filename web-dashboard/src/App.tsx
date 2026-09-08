@@ -1089,30 +1089,30 @@ function LoyaltyWalletPage({ currentUser: propUser }: { currentUser?: any }) {
     }
   }, [propUser]);
 
-  const isAdmin = user?.role === 'ADMIN' || user?.email === 'admin@loyaltyplatform.com';
+  const isSuperAdmin = user?.email === 'admin@loyaltyplatform.com';
   const [selectedUser, setSelectedUser] = useState<string>('INIT');
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isSuperAdmin) {
       api.users.list({ limit: 100 }).then(u => setUserList(u.data || u || [])).catch(() => {});
     }
-  }, [isAdmin]);
+  }, [isSuperAdmin]);
 
   useEffect(() => {
     if (user && selectedUser === 'INIT') {
-      const initialUser = isAdmin ? 'ALL' : user.id;
+      const initialUser = isSuperAdmin ? 'ALL' : user.id;
       setSelectedUser(initialUser);
     }
-  }, [user, isAdmin, selectedUser]);
+  }, [user, isSuperAdmin, selectedUser]);
 
   useEffect(() => {
     if (selectedUser !== 'INIT') {
-      const targetId = (selectedUser === 'ALL' || !selectedUser) ? (isAdmin ? undefined : user?.id) : selectedUser;
-      if (targetId || isAdmin) {
+      const targetId = (selectedUser === 'ALL' || !selectedUser) ? (isSuperAdmin ? undefined : user?.id) : selectedUser;
+      if (targetId || isSuperAdmin) {
         api.points.walletSummary(targetId).then(setSummary).catch(() => {});
       }
     }
-  }, [selectedUser, user, isAdmin]);
+  }, [selectedUser, user, isSuperAdmin]);
 
   return (
     <div>
@@ -1121,7 +1121,7 @@ function LoyaltyWalletPage({ currentUser: propUser }: { currentUser?: any }) {
           <h1 className="text-2xl font-bold text-gray-900 mb-1">👛 Loyalty Wallet & Points Ledger</h1>
           <p className="text-gray-500 text-sm">Real-time point balances, transaction ledger, and wallet activity</p>
         </div>
-        {isAdmin && (
+        {isSuperAdmin && (
           <div className="flex items-center gap-2">
             <label className="text-xs font-medium text-gray-600">Filter Wallet User:</label>
             <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)}
