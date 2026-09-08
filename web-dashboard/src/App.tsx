@@ -1439,12 +1439,18 @@ function CheckoutPage() {
 }
 
 // ─── AGE VERIFICATION PAGE (Altria 21+ Compliance) ───
-function AgeVerificationPage() {
-  const [userId, setUserId] = useState('');
+function AgeVerificationPage({ currentUser }: { currentUser?: any }) {
+  const [userId, setUserId] = useState(currentUser?.id || '');
   const [documentType, setDocumentType] = useState('DRIVERS_LICENSE');
   const [documentNumber, setDocumentNumber] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [result, setResult] = useState<any>(null);
+
+  useEffect(() => {
+    if (currentUser?.id && !userId) {
+      setUserId(currentUser.id);
+    }
+  }, [currentUser]);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();

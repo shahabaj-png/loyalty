@@ -1,11 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 
+import { IsString, IsOptional, IsDateString } from 'class-validator';
+
 export class VerifyAgeDto {
-  userId: string;
-  documentType: string; // E.g., 'DRIVERS_LICENSE', 'PASSPORT', 'STATE_ID'
-  documentNumber?: string;
-  dateOfBirth: string; // ISO date format YYYY-MM-DD
+  @IsString() userId: string;
+  @IsString() documentType: string; // E.g., 'DRIVERS_LICENSE', 'PASSPORT', 'STATE_ID'
+  @IsOptional() @IsString() documentNumber?: string;
+  @IsDateString() dateOfBirth: string; // ISO date format YYYY-MM-DD
 }
 
 @Injectable()
