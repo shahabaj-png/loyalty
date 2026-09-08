@@ -106,6 +106,7 @@ const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: '📊' },
   { path: '/products', label: 'Products / Software', icon: '🚀' },
   { path: '/tenants', label: 'Tenants / Businesses', icon: '🏢' },
+  { path: '/business-profile', label: 'Business Profile', icon: '🏢' },
   { path: '/service-plans', label: 'Plans', icon: '📦' },
   { path: '/subscriptions', label: 'Subscriptions', icon: '💳' },
   { path: '/points', label: 'Loyalty Rules & Points', icon: '💎' },
@@ -124,11 +125,13 @@ function Sidebar({ currentUser }: { currentUser?: any }) {
   const isSuperAdmin = currentUser?.email === 'admin@loyaltyplatform.com';
   const isBusinessOwner = currentUser?.role === 'BUSINESS_OWNER' || currentUser?.role === 'ADMIN';
 
-  // Granular Access Control according to Multi-Tenant SaaS specs
+  // Granular Access Control:
+  // - Super Admin sees Users & Tenants, but NOT Business Profile
+  // - Business Owner sees Business Profile, but NOT Users or Tenants list
   const visibleNavItems = isSuperAdmin 
-    ? NAV_ITEMS  // Super Admin sees all 12 modules
+    ? NAV_ITEMS.filter(item => item.path !== '/business-profile')  // Super Admin sees everything except personal business profile
     : isBusinessOwner
-    ? NAV_ITEMS.filter(item => ['/', '/users', '/rewards', '/points', '/challenges', '/webhooks', '/service-plans', '/subscriptions', '/checkout', '/wallet', '/age-verification'].includes(item.path)) // Business Owner / Tenant Admin
+    ? NAV_ITEMS.filter(item => ['/', '/products', '/business-profile', '/service-plans', '/subscriptions', '/points', '/rewards', '/challenges', '/webhooks', '/checkout', '/wallet', '/age-verification'].includes(item.path)) // Business Owner
     : NAV_ITEMS.filter(item => ['/rewards', '/wallet', '/age-verification'].includes(item.path)); // Customer Member
 
   const roleBadgeText = isSuperAdmin
@@ -386,7 +389,19 @@ function DashboardPage() {
 }
 
 // ─── USERS PAGE ───
-function UsersPage() {
+function UsersPage({ currentUser }: { currentUser?: any }) {
+  const isSuperAdmin = currentUser?.email === 'admin@loyaltyplatform.com';
+
+  if (!isSuperAdmin) {
+    return (
+      <div className="max-w-4xl mx-auto bg-white p-8 rounded-xl border shadow-sm text-center">
+        <span className="text-4xl">🔒</span>
+        <h2 className="text-xl font-bold text-gray-900 mt-3">Admin Access Required</h2>
+        <p className="text-gray-500 text-sm mt-1">User management is restricted to global Super Admins only.</p>
+      </div>
+    );
+  }
+
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -1753,6 +1768,185 @@ function ProductsPage({ currentUser }: { currentUser?: any }) {
   );
 }
 
+// ─── BUSINESS PROFILE PAGE (Business Owner Editable Profile) ───
+function BusinessProfilePage({ currentUser }: { currentUser?: any }) {
+  const [tenant, setTenant] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [gstNumber, setGstNumber] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [pincode, setPincode] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [apiSecret, setApiSecret] = useState('');
+
+  useEffect(() => {
+    // Fetch tenants and find matching tenant for current business owner or default to active business profile
+    api.tenants.list().then((tenants: any[]) => {
+      const myTenant = tenants.find((t: any) => t.id === currentUser?.tenantId || t.name.toLowerCase().includes('warehouse') || tenants.length > 0) || tenants[0];
+      if (myTenant) {
+        setTenant(myTenant);
+        setName(myTenant.name || '');
+        setDescription(myTenant.description || '');
+        setGstNumber(myTenant.gstNumber || '');
+        setAddress(myTenant.address || '');
+        setCity(myTenant.city || '');
+        setState(myTenant.state || '');
+        setPincode(myTenant.pincode || '');
+        setApiKey(myTenant.apiKey || '');
+        setApiSecret(myTenant.apiSecret || '');
+      }
+    }).catch(err => console.error(err)).finally(() => setLoading(false));
+  }, [currentUser]);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tenant) return;
+    setSaving(true);
+    setMessage('');
+    try {
+      const updated = await api.tenants.update(tenant.id, {
+        name,
+        description,
+        gstNumber,
+        address,
+        city,
+        state,
+        pincode,
+      });
+      setTenant(updated);
+      setMessage('✅ Business Profile updated successfully!');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to update business profile');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRegenerateKeys = async () => {
+    if (!tenant || !confirm('Regenerate API keys? Previous integration keys will stop working.')) return;
+    try {
+      const updated = await api.tenants.regenerateCredentials(tenant.id);
+      setTenant(updated);
+      setApiKey(updated.apiKey);
+      setApiSecret(updated.apiSecret);
+      alert('New Integration API keys generated!');
+    } catch (err: any) {
+      alert('Failed to regenerate API keys');
+    }
+  };
+
+  if (loading) return <div className="text-center py-12 text-gray-500">Loading Business Profile...</div>;
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">🏢 My Business Profile</h1>
+          <p className="text-gray-500 text-sm">Manage your store details, GST tax information, and external API integrations</p>
+        </div>
+        <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full uppercase">
+          🏬 Tenant / Store Account
+        </span>
+      </div>
+
+      {message && <div className="bg-green-50 border border-green-200 text-green-800 p-4 rounded-xl mb-6 text-sm font-medium">{message}</div>}
+
+      <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
+        <form onSubmit={handleSave} className="space-y-4">
+          <h3 className="text-lg font-bold text-gray-900 border-b pb-2">Business Identification</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Company / Store Name</label>
+              <input value={name} onChange={e => setName(e.target.value)}
+                className="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">GSTIN Number</label>
+              <input value={gstNumber} onChange={e => setGstNumber(e.target.value)} placeholder="22AAAAA0000A1Z5"
+                className="w-full border rounded-lg px-4 py-2 text-sm uppercase font-mono focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Business Description</label>
+              <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2}
+                className="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+          </div>
+
+          <h3 className="text-lg font-bold text-gray-900 border-b pb-2 pt-4">Registered Location Address</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Street Address</label>
+              <input value={address} onChange={e => setAddress(e.target.value)}
+                className="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">City</label>
+              <input value={city} onChange={e => setCity(e.target.value)}
+                className="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">State</label>
+              <input value={state} onChange={e => setState(e.target.value)}
+                className="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Pincode</label>
+              <input value={pincode} onChange={e => setPincode(e.target.value)}
+                className="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+          </div>
+
+          <div className="pt-4 flex justify-end">
+            <button type="submit" disabled={saving}
+              className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 transition">
+              {saving ? 'Saving Profile...' : 'Save Profile Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Integration Credentials Section */}
+      <div className="bg-gray-900 text-white rounded-xl p-6 shadow-sm border">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h3 className="text-lg font-bold">🔑 B2B Webhook & API Keys</h3>
+            <p className="text-xs text-gray-400">Use these keys to connect Warehouse CEO or POS to award loyalty points automatically</p>
+          </div>
+          <button onClick={handleRegenerateKeys}
+            className="bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs px-3 py-1.5 rounded-lg border border-gray-700">
+            🔄 Regenerate Keys
+          </button>
+        </div>
+
+        <div className="space-y-3 font-mono text-xs">
+          <div>
+            <span className="text-gray-400 text-[10px] block uppercase">API Key</span>
+            <div className="bg-gray-800 p-2.5 rounded border border-gray-700 flex justify-between items-center mt-1">
+              <span className="text-indigo-300">{apiKey || 'No key generated'}</span>
+              <button onClick={() => { navigator.clipboard.writeText(apiKey); alert('Copied API Key!'); }}
+                className="text-xs text-indigo-400 hover:underline">Copy</button>
+            </div>
+          </div>
+          <div>
+            <span className="text-gray-400 text-[10px] block uppercase">API Secret</span>
+            <div className="bg-gray-800 p-2.5 rounded border border-gray-700 flex justify-between items-center mt-1">
+              <span className="text-indigo-300">{apiSecret || 'No secret generated'}</span>
+              <button onClick={() => { navigator.clipboard.writeText(apiSecret); alert('Copied API Secret!'); }}
+                className="text-xs text-indigo-400 hover:underline">Copy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── APP ───
 export default function App() {
   const { isAuthenticated } = useAdminStore();
@@ -1767,6 +1961,7 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/products" element={<ProductsPage />} />
+                <Route path="/business-profile" element={<BusinessProfilePage />} />
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/rewards" element={<RewardsPage />} />
                 <Route path="/points" element={<PointsPage />} />
