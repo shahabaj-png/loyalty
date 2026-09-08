@@ -54,7 +54,7 @@ function LoginPage() {
                 <select value={accountRole} onChange={e => setAccountRole(e.target.value)}
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-indigo-50/50 font-semibold text-indigo-900">
                   <option value="MEMBER">👤 Customer Member (Earn & Redeem Points)</option>
-                  <option value="ADMIN">🛠️ Business / Store Owner (Manage Loyalty & Pay SaaS Subscription)</option>
+                  <option value="BUSINESS_OWNER">🏬 Business / Store Owner (Manage Loyalty & Pay SaaS Subscription)</option>
                 </select>
               </div>
 
@@ -120,8 +120,8 @@ const NAV_ITEMS = [
 function Sidebar({ currentUser }: { currentUser?: any }) {
   const location = useLocation();
   const { logout } = useAdminStore();
-  const isSuperAdmin = currentUser?.role === 'ADMIN' || currentUser?.email === 'admin@loyaltyplatform.com';
-  const isBusinessOwner = currentUser?.role === 'BUSINESS_OWNER';
+  const isSuperAdmin = currentUser?.email === 'admin@loyaltyplatform.com';
+  const isBusinessOwner = currentUser?.role === 'BUSINESS_OWNER' || currentUser?.role === 'ADMIN';
 
   // 3-Tier Granular Access Control
   const visibleNavItems = isSuperAdmin 
@@ -277,8 +277,8 @@ function Layout({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const isSuperAdmin = currentUser?.role === 'ADMIN' || currentUser?.email === 'admin@loyaltyplatform.com';
-  const isBusinessOwner = currentUser?.role === 'BUSINESS_OWNER';
+  const isSuperAdmin = currentUser?.email === 'admin@loyaltyplatform.com';
+  const isBusinessOwner = currentUser?.role === 'BUSINESS_OWNER' || currentUser?.role === 'ADMIN';
 
   return (
     <div className="flex min-h-screen">
