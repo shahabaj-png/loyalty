@@ -585,16 +585,35 @@ function ServicePlansPage() {
 
   const handleCreate = async () => {
     try {
+      if (!form.name || !form.price) {
+        alert('Please enter a Plan Name and Price.');
+        return;
+      }
+
+      let parsedFeatures = {};
+      try {
+        parsedFeatures = form.features ? JSON.parse(form.features) : {};
+      } catch (jsonErr) {
+        alert('Invalid JSON format in Features field. Example format: {"maxUsers": 10}');
+        return;
+      }
+
+      const generatedSlug = form.slug || form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
       await api.servicePlans.create({ 
-        ...form, 
-        price: parseInt(form.price), 
-        features: JSON.parse(form.features) 
+        name: form.name,
+        slug: generatedSlug,
+        description: form.description || form.name,
+        price: parseInt(form.price, 10), 
+        billingCycle: form.billingCycle,
+        features: parsedFeatures 
       });
       setShowForm(false);
       setForm({ name: '', slug: '', description: '', price: '', billingCycle: 'MONTHLY', features: '{}' });
       api.servicePlans.list().then(setPlans);
-    } catch (err) {
-      alert('Error creating plan. Check console for details.');
+    } catch (err: any) {
+      console.error('Plan Creation Error:', err);
+      alert(err.response?.data?.message || err.message || 'Error creating plan');
     }
   };
 
