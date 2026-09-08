@@ -1035,11 +1035,21 @@ function TenantsPage() {
 }
 
 // ─── LOYALTY WALLET & LEDGER PAGE ───
-function LoyaltyWalletPage({ currentUser }: { currentUser?: any }) {
+function LoyaltyWalletPage({ currentUser: propUser }: { currentUser?: any }) {
+  const [user, setUser] = useState<any>(propUser);
   const [summary, setSummary] = useState<any>(null);
-  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.email === 'admin@loyaltyplatform.com';
-  const [selectedUser, setSelectedUser] = useState<string>(isAdmin ? 'ALL' : currentUser?.id || '');
   const [userList, setUserList] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (propUser) {
+      setUser(propUser);
+    } else {
+      api.users.me().then(u => setUser(u)).catch(() => {});
+    }
+  }, [propUser]);
+
+  const isAdmin = user?.role === 'ADMIN' || user?.email === 'admin@loyaltyplatform.com';
+  const [selectedUser, setSelectedUser] = useState<string>('INIT');
 
   useEffect(() => {
     if (isAdmin) {
@@ -1048,19 +1058,20 @@ function LoyaltyWalletPage({ currentUser }: { currentUser?: any }) {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!isAdmin && currentUser?.id) {
-      setSelectedUser(currentUser.id);
+    if (user && selectedUser === 'INIT') {
+      const initialUser = isAdmin ? 'ALL' : user.id;
+      setSelectedUser(initialUser);
     }
-  }, [currentUser, isAdmin]);
-
-  const fetchWallet = (userId?: string) => {
-    const targetId = (userId === 'ALL' || !userId) ? (isAdmin ? undefined : currentUser?.id) : userId;
-    api.points.walletSummary(targetId).then(setSummary).catch(() => {});
-  };
+  }, [user, isAdmin, selectedUser]);
 
   useEffect(() => {
-    fetchWallet(selectedUser);
-  }, [selectedUser, currentUser]);
+    if (selectedUser !== 'INIT') {
+      const targetId = (selectedUser === 'ALL' || !selectedUser) ? (isAdmin ? undefined : user?.id) : selectedUser;
+      if (targetId || isAdmin) {
+        api.points.walletSummary(targetId).then(setSummary).catch(() => {});
+      }
+    }
+  }, [selectedUser, user, isAdmin]);
 
   return (
     <div>
