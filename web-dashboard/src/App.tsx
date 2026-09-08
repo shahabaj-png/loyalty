@@ -120,20 +120,35 @@ const NAV_ITEMS = [
 function Sidebar({ currentUser }: { currentUser?: any }) {
   const location = useLocation();
   const { logout } = useAdminStore();
-  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.email === 'admin@loyaltyplatform.com';
+  const isSuperAdmin = currentUser?.role === 'ADMIN' || currentUser?.email === 'admin@loyaltyplatform.com';
+  const isBusinessOwner = currentUser?.role === 'BUSINESS_OWNER';
 
-  // Strict Role-Based Access Control
-  const visibleNavItems = isAdmin 
-    ? NAV_ITEMS 
+  // 3-Tier Granular Access Control
+  const visibleNavItems = isSuperAdmin 
+    ? NAV_ITEMS  // Super-Admin sees everything
+    : isBusinessOwner
+    ? NAV_ITEMS.filter(item => ['/', '/tenants', '/subscriptions', '/checkout', '/rewards', '/points', '/webhooks', '/wallet'].includes(item.path))
     : NAV_ITEMS.filter(item => ['/rewards', '/wallet', '/age-verification'].includes(item.path));
+
+  const roleBadgeText = isSuperAdmin
+    ? '👑 Super Admin'
+    : isBusinessOwner
+    ? '🏬 Business Owner'
+    : '👤 Customer Member';
+
+  const roleBadgeStyle = isSuperAdmin
+    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+    : isBusinessOwner
+    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+    : 'bg-green-500/20 text-green-300 border border-green-500/30';
 
   return (
     <aside className="w-64 bg-gray-900 text-white min-h-screen flex flex-col">
       <div className="p-6 border-b border-gray-700">
         <h2 className="text-xl font-bold">🏅 Loyalty Platform</h2>
         <p className="text-xs text-indigo-400 mt-1 font-mono">{currentUser?.email || 'Authenticated User'}</p>
-        <span className={`inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${isAdmin ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-green-500/20 text-green-300 border border-green-500/30'}`}>
-          {isAdmin ? '🛠️ Admin / Retailer' : '👤 Customer Member'}
+        <span className={`inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${roleBadgeStyle}`}>
+          {roleBadgeText}
         </span>
       </div>
       <nav className="flex-1 py-4">
@@ -262,7 +277,8 @@ function Layout({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.email === 'admin@loyaltyplatform.com';
+  const isSuperAdmin = currentUser?.role === 'ADMIN' || currentUser?.email === 'admin@loyaltyplatform.com';
+  const isBusinessOwner = currentUser?.role === 'BUSINESS_OWNER';
 
   return (
     <div className="flex min-h-screen">
@@ -271,8 +287,11 @@ function Layout({ children }: { children: React.ReactNode }) {
         <header className="bg-white border-b px-8 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active View:</span>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${isAdmin ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>
-              {isAdmin ? '🛠️ Platform Admin & Retailer Portal' : '👤 Customer App View'}
+            <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
+              isSuperAdmin ? 'bg-purple-100 text-purple-800' :
+              isBusinessOwner ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+            }`}>
+              {isSuperAdmin ? '👑 Super Admin Platform Control' : isBusinessOwner ? '🏬 B2B Business Owner Portal' : '👤 Customer App View'}
             </span>
           </div>
           <div className="text-xs font-semibold text-gray-500">
