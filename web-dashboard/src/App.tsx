@@ -1439,18 +1439,25 @@ function CheckoutPage() {
 }
 
 // ─── AGE VERIFICATION PAGE (Altria 21+ Compliance) ───
-function AgeVerificationPage({ currentUser }: { currentUser?: any }) {
-  const [userId, setUserId] = useState(currentUser?.id || '');
+function AgeVerificationPage({ currentUser: propUser }: { currentUser?: any }) {
+  const [user, setUser] = useState<any>(propUser);
+  const [userId, setUserId] = useState(propUser?.id || '');
   const [documentType, setDocumentType] = useState('DRIVERS_LICENSE');
   const [documentNumber, setDocumentNumber] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [result, setResult] = useState<any>(null);
 
   useEffect(() => {
-    if (currentUser?.id && !userId) {
-      setUserId(currentUser.id);
+    if (propUser) {
+      setUser(propUser);
+      setUserId(propUser.id);
+    } else {
+      api.users.me().then(u => {
+        setUser(u);
+        setUserId(u.id);
+      }).catch(() => {});
     }
-  }, [currentUser]);
+  }, [propUser]);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1475,9 +1482,11 @@ function AgeVerificationPage({ currentUser }: { currentUser?: any }) {
       <div className="bg-white rounded-xl p-6 shadow-sm border mb-8">
         <form onSubmit={handleVerify} className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
-            <label className="block text-xs font-medium text-gray-700 mb-1">User ID</label>
-            <input placeholder="User UUID" value={userId} onChange={e => setUserId(e.target.value)}
-              className="w-full border rounded-lg px-4 py-2 text-sm" required />
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Your Customer Account ID {user?.email ? `(${user.email})` : ''}
+            </label>
+            <input placeholder="Auto-filled Customer ID" value={userId} onChange={e => setUserId(e.target.value)}
+              className="w-full border rounded-lg px-4 py-2 text-sm bg-gray-50 font-mono text-gray-700" required />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Document Type</label>
