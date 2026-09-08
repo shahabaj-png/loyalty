@@ -104,14 +104,15 @@ function LoginPage() {
 // ─── SIDEBAR ───
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: '📊' },
-  { path: '/users', label: 'Users', icon: '👥' },
-  { path: '/rewards', label: 'Rewards', icon: '🎁' },
-  { path: '/points', label: 'Points & Rules', icon: '💎' },
-  { path: '/challenges', label: 'Challenges', icon: '🏆' },
-  { path: '/webhooks', label: 'Webhooks', icon: '🔗' },
-  { path: '/service-plans', label: 'Service Plans', icon: '📦' },
-  { path: '/tenants', label: 'Tenants', icon: '🏢' },
+  { path: '/products', label: 'Products / Software', icon: '🚀' },
+  { path: '/tenants', label: 'Tenants / Businesses', icon: '🏢' },
+  { path: '/service-plans', label: 'Plans', icon: '📦' },
   { path: '/subscriptions', label: 'Subscriptions', icon: '💳' },
+  { path: '/points', label: 'Loyalty Rules & Points', icon: '💎' },
+  { path: '/rewards', label: 'Rewards & Redemption', icon: '🎁' },
+  { path: '/challenges', label: 'Challenges', icon: '🏆' },
+  { path: '/webhooks', label: 'Webhooks & Integrations', icon: '🔗' },
+  { path: '/users', label: 'Users', icon: '👥' },
   { path: '/checkout', label: 'Cart & Checkout', icon: '🛒' },
   { path: '/wallet', label: 'Loyalty Wallet', icon: '👛' },
   { path: '/age-verification', label: 'Age Verification (21+)', icon: '🔞' },
@@ -1563,6 +1564,195 @@ function AgeVerificationPage({ currentUser: propUser }: { currentUser?: any }) {
     </div>
   );
 }
+// ─── PRODUCTS / SOFTWARE PAGE ───
+function ProductsPage({ currentUser }: { currentUser?: any }) {
+  const isSuperAdmin = currentUser?.email === 'admin@loyaltyplatform.com';
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Form state
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('0');
+  const [status, setStatus] = useState('ACTIVE');
+
+  const fetchProducts = async () => {
+    try {
+      const data = await api.products.list();
+      setProducts(data);
+    } catch (err) {
+      console.error('Failed to fetch products', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const handleOpenCreate = () => {
+    setEditingId(null);
+    setName('');
+    setSlug('');
+    setDescription('');
+    setPrice('0');
+    setStatus('ACTIVE');
+    setShowModal(true);
+  };
+
+  const handleOpenEdit = (p: any) => {
+    setEditingId(p.id);
+    setName(p.name);
+    setSlug(p.slug);
+    setDescription(p.description || '');
+    setPrice(String((p.price || 0) / 100));
+    setStatus(p.status || 'ACTIVE');
+    setShowModal(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        name,
+        slug: slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        description,
+        price: Math.round(parseFloat(price || '0') * 100),
+        status,
+      };
+
+      if (editingId) {
+        await api.products.update(editingId, payload);
+      } else {
+        await api.products.create(payload);
+      }
+      setShowModal(false);
+      fetchProducts();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to save product');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+    try {
+      await api.products.delete(id);
+      fetchProducts();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to delete product');
+    }
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">🚀 Products & Software Directory</h1>
+          <p className="text-gray-500 text-sm">Manage business software suites (e.g. Warehouse CEO, CRM, Accounting)</p>
+        </div>
+        {isSuperAdmin && (
+          <button onClick={handleOpenCreate} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition">
+            + Add New Product
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="text-center py-12 text-gray-500">Loading products...</div>
+      ) : products.length === 0 ? (
+        <div className="bg-white rounded-xl p-8 text-center border text-gray-500">
+          No products created yet. {isSuperAdmin && 'Click "+ Add New Product" to create Warehouse CEO, CRM, or Accounting Software.'}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {products.map((p) => (
+            <div key={p.id} className="bg-white border rounded-xl p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition">
+              <div>
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-bold text-lg text-gray-900">{p.name}</h3>
+                  <span className={`px-2 py-0.5 rounded text-xs font-semibold ${p.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                    {p.status}
+                  </span>
+                </div>
+                <p className="text-xs text-indigo-600 font-mono mb-2">Slug: {p.slug}</p>
+                <p className="text-sm text-gray-600 mb-4">{p.description || 'No description provided.'}</p>
+              </div>
+
+              <div>
+                <div className="border-t pt-3 flex justify-between items-center">
+                  <div>
+                    <span className="text-xs text-gray-400 block">Starting Price</span>
+                    <span className="text-xl font-bold text-gray-900">₹{(p.price / 100).toFixed(2)}</span>
+                  </div>
+                  {isSuperAdmin && (
+                    <div className="flex gap-2">
+                      <button onClick={() => handleOpenEdit(p)} className="text-indigo-600 hover:text-indigo-900 text-sm font-semibold">
+                        Edit
+                      </button>
+                      <button onClick={() => handleDelete(p.id)} className="text-red-600 hover:text-red-900 text-sm font-semibold">
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <h2 className="text-xl font-bold mb-4">{editingId ? 'Edit Product' : 'Add New Product/Software'}</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Product Name</label>
+                <input placeholder="e.g. Warehouse CEO" value={name} onChange={(e) => setName(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">URL Slug</label>
+                <input placeholder="e.g. warehouse-ceo" value={slug} onChange={(e) => setSlug(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Description</label>
+                <textarea placeholder="Enter software features or details..." value={description} onChange={(e) => setDescription(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" rows={3} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Price (₹ INR)</label>
+                <input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="INACTIVE">INACTIVE</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg">
+                  Cancel
+                </button>
+                <button type="submit" className="px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                  Save Product
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── APP ───
 export default function App() {
   const { isAuthenticated } = useAdminStore();
@@ -1576,6 +1766,7 @@ export default function App() {
             <Layout>
               <Routes>
                 <Route path="/" element={<DashboardPage />} />
+                <Route path="/products" element={<ProductsPage />} />
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/rewards" element={<RewardsPage />} />
                 <Route path="/points" element={<PointsPage />} />

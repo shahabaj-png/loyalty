@@ -59,6 +59,13 @@ export const api = {
     create: (data: any) => client.post('/webhooks', data).then(r => r.data),
     logs: (id: string) => client.get(`/webhooks/${id}/logs`).then(r => r.data),
   },
+  products: {
+    list: () => client.get('/products').then(r => r.data),
+    get: (id: string) => client.get(`/products/${id}`).then(r => r.data),
+    create: (data: any) => client.post('/products', data).then(r => r.data),
+    update: (id: string, data: any) => client.put(`/products/${id}`, data).then(r => r.data),
+    delete: (id: string) => client.delete(`/products/${id}`).then(r => r.data),
+  },
   servicePlans: {
     list: (includeInactive?: boolean) => client.get('/service-plans', { params: { includeInactive } }).then(r => r.data),
     get: (id: string) => client.get(`/service-plans/${id}`).then(r => r.data),

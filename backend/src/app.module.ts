@@ -16,11 +16,13 @@ import { TenantsModule } from './tenants/tenants.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { OrdersModule } from './orders/orders.module';
 import { AgeVerificationModule } from './age-verification/age-verification.module';
+import { ProductsModule } from './products/products.module';
 
 import { AppController } from './app.controller';
 
 @Module({
   imports: [
+    ProductsModule,
     // Rate limiting
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
 

@@ -353,8 +353,27 @@ model WebhookLog {
 // B2B SERVICE PLANS & SUBSCRIPTIONS
 // ============================================================
 
+model Product {
+  id          String        @id @default(uuid())
+  name        String        @unique
+  slug        String        @unique
+  description String
+  status      Boolean       @default(true)
+  price       Int           @default(0)
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  plans       ServicePlan[]
+  subscriptions Subscription[]
+
+  @@index([slug])
+  @@index([status])
+}
+
 model ServicePlan {
   id            String         @id @default(uuid())
+  productId     String?
+  product       Product?       @relation(fields: [productId], references: [id])
   name          String         @unique
   slug          String         @unique
   description   String
@@ -406,6 +425,8 @@ model Subscription {
   id                 String             @id @default(uuid())
   tenantId           String
   tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  productId          String?
+  product            Product?           @relation(fields: [productId], references: [id])
   planId             String
   plan               ServicePlan        @relation(fields: [planId], references: [id])
   status             SubscriptionStatus @default(ACTIVE)
