@@ -5,6 +5,8 @@ import { nanoid } from 'nanoid';
 import { PrismaService } from '../common/prisma.service';
 import { RedisService } from '../common/redis.service';
 
+import { UserRole } from '@prisma/client';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -13,7 +15,7 @@ export class AuthService {
     private redis: RedisService,
   ) {}
 
-  async register(dto: { email: string; password: string; firstName: string; lastName: string; phone?: string; referralCode?: string }) {
+  async register(dto: { email: string; password: string; firstName: string; lastName: string; role?: string; phone?: string; referralCode?: string }) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Email already registered');
 
@@ -26,12 +28,15 @@ export class AuthService {
       if (referrer) referredBy = referrer.id;
     }
 
+    const userRole = (dto.role === 'ADMIN' || dto.role === 'BUSINESS_OWNER' ? UserRole.ADMIN : UserRole.CUSTOMER);
+
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         passwordHash,
         firstName: dto.firstName,
         lastName: dto.lastName,
+        role: userRole,
         phone: dto.phone,
         referralCode,
         referredBy,

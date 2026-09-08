@@ -10,6 +10,7 @@ export class RegisterDto {
   @IsString() @MinLength(8) password: string;
   @IsString() firstName: string;
   @IsString() lastName: string;
+  @IsOptional() @IsString() role?: string;
   @IsOptional() @IsString() phone?: string;
   @IsOptional() @IsString() referralCode?: string;
 }

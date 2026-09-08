@@ -11,6 +11,7 @@ import {
 function LoginPage() {
   const { login } = useAdminStore();
   const [isRegister, setIsRegister] = useState(false);
+  const [accountRole, setAccountRole] = useState('MEMBER');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -24,7 +25,7 @@ function LoginPage() {
     setError('');
     try {
       if (isRegister) {
-        const res = await api.auth.register({ email, password, firstName, lastName });
+        const res = await api.auth.register({ email, password, firstName, lastName, role: accountRole });
         login(res.accessToken);
       } else {
         const res = await api.auth.login({ email, password });
@@ -47,18 +48,29 @@ function LoginPage() {
         
         <form onSubmit={handleSubmit}>
           {isRegister && (
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">First Name</label>
-                <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
+            <>
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Account Purpose / Role</label>
+                <select value={accountRole} onChange={e => setAccountRole(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-indigo-50/50 font-semibold text-indigo-900">
+                  <option value="MEMBER">👤 Customer Member (Earn & Redeem Points)</option>
+                  <option value="ADMIN">🛠️ Business / Store Owner (Manage Loyalty & Pay SaaS Subscription)</option>
+                </select>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Last Name</label>
-                <input type="text" value={lastName} onChange={e => setLastName(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">First Name</label>
+                  <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Last Name</label>
+                  <input type="text" value={lastName} onChange={e => setLastName(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" required />
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           <label className="block text-xs font-medium text-gray-700 mb-1">Email Address</label>
