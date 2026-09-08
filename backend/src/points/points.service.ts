@@ -151,7 +151,7 @@ export class PointsService {
 
     const [earnedAgg, redeemedAgg, expiredAgg, userCount] = await Promise.all([
       this.prisma.pointTransaction.aggregate({
-        where: { ...where, type: { in: ['EARN', 'BONUS', 'ADJUSTMENT'] } },
+        where: { ...where, amount: { gt: 0 } },
         _sum: { amount: true },
       }),
       this.prisma.pointTransaction.aggregate({
