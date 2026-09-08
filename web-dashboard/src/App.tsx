@@ -814,18 +814,45 @@ function TenantsPage() {
   );
 }
 
-// ─── LOYALTY WALLET & LEDGER PAGE (Matching Diagram Wallet & Ledger) ───
+// ─── LOYALTY WALLET & LEDGER PAGE ───
 function LoyaltyWalletPage() {
   const [summary, setSummary] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<string>('ALL');
+  const [userList, setUserList] = useState<any[]>([]);
 
   useEffect(() => {
-    api.points.walletSummary().then(setSummary).catch(() => {});
+    api.users.list({ limit: 100 }).then(u => setUserList(u.data || u || [])).catch(() => {});
   }, []);
+
+  const fetchWallet = (userId?: string) => {
+    const targetId = userId === 'ALL' ? undefined : userId;
+    api.points.walletSummary(targetId).then(setSummary).catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchWallet(selectedUser);
+  }, [selectedUser]);
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">👛 Loyalty Wallet & Points Ledger</h1>
-      <p className="text-gray-500 mb-6">Real-time point balances, transaction ledger, and wallet activity</p>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">👛 Loyalty Wallet & Points Ledger</h1>
+          <p className="text-gray-500 text-sm">Real-time point balances, transaction ledger, and wallet activity</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-gray-600">Filter Wallet User:</label>
+          <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)}
+            className="border rounded-lg px-3 py-2 text-sm bg-white font-medium shadow-sm">
+            <option value="ALL">🌐 System Platform (All Users Aggregate)</option>
+            {userList.map(u => (
+              <option key={u.id} value={u.id}>
+                👤 {u.firstName} {u.lastName} ({u.email}) - {u.availablePoints?.toLocaleString()} pts
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {/* 4 Cards matching diagram */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
