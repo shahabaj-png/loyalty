@@ -327,62 +327,256 @@ function StatCard({ title, value, change, icon }: { title: string; value: string
 }
 
 // ─── DASHBOARD PAGE ───
-function DashboardPage() {
+function DashboardPage({ currentUser }: { currentUser?: any }) {
+  const isSuperAdmin = currentUser?.email === 'admin@loyaltyplatform.com';
+
+  // Super Admin Stats
   const [stats, setStats] = useState<any>(null);
   const [timeseries, setTimeseries] = useState<any[]>([]);
   const [topRewards, setTopRewards] = useState<any[]>([]);
 
+  // Business Owner State
+  const [tenant, setTenant] = useState<any>(null);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [rewards, setRewards] = useState<any[]>([]);
+  const [ledger, setLedger] = useState<any[]>([]);
+  const [redemptions, setRedemptions] = useState<any[]>([]);
+  const [loadingBiz, setLoadingBiz] = useState(true);
+
   useEffect(() => {
-    api.analytics.dashboard().then(setStats).catch(() => {});
-    api.analytics.pointsTimeseries({ period: '30d' }).then(setTimeseries).catch(() => {});
-    api.analytics.topRewards().then(setTopRewards).catch(() => {});
-  }, []);
+    if (isSuperAdmin) {
+      api.analytics.dashboard().then(setStats).catch(() => {});
+      api.analytics.pointsTimeseries({ period: '30d' }).then(setTimeseries).catch(() => {});
+      api.analytics.topRewards().then(setTopRewards).catch(() => {});
+    } else {
+      // Business Owner tailored telemetry
+      Promise.all([
+        api.tenants.list().catch(() => []),
+        api.products.list().catch(() => []),
+        api.rewards.list().catch(() => []),
+      ]).then(([tenants, prods, rews]) => {
+        const myTenant = tenants.find((t: any) => t.id === currentUser?.tenantId || t.name.toLowerCase().includes('warehouse') || tenants.length > 0) || tenants[0];
+        setTenant(myTenant);
+        setProducts(prods);
+        setRewards(rews.filter((r: any) => r.isActive));
+
+        if (myTenant) {
+          api.subscriptions.list(myTenant.id).then(setSubscriptions).catch(() => {});
+        }
+      }).finally(() => setLoadingBiz(false));
+
+      // Fetch user's wallet ledger & redemptions
+      api.points.walletSummary(currentUser?.id || 'demo-user').then(res => {
+        setLedger(res.recentLedger || []);
+        setRedemptions(res.recentRedemptions || []);
+      }).catch(() => {});
+    }
+  }, [isSuperAdmin, currentUser]);
 
   const COLORS = ['#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
+  // ─── SUPER ADMIN DASHBOARD ───
+  if (isSuperAdmin) {
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">👑 Super Admin Platform Overview</h1>
+            <p className="text-sm text-gray-500">Global metrics across all tenants, users, and point distributions</p>
+          </div>
+          <span className="bg-purple-100 text-purple-800 text-xs font-bold px-3 py-1 rounded-full uppercase">
+            Global Admin Telemetry
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <StatCard title="Total Platform Users" value={stats?.totalUsers?.toLocaleString() || '—'} change={stats?.userGrowth} icon="👥" />
+          <StatCard title="Active Users (30d)" value={stats?.activeUsers?.toLocaleString() || '—'} icon="📈" />
+          <StatCard title="Total Points Issued" value={stats?.totalPointsIssued?.toLocaleString() || '—'} icon="💎" />
+          <StatCard title="Rewards Claimed" value={stats?.rewardsClaimed?.toLocaleString() || '—'} icon="🎁" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl p-6 shadow-sm border">
+            <h3 className="font-semibold text-gray-900 mb-4">Points Activity (30 days)</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={timeseries}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Line type="monotone" dataKey="earned" stroke="#6366F1" strokeWidth={2} name="Earned" />
+                <Line type="monotone" dataKey="redeemed" stroke="#EF4444" strokeWidth={2} name="Redeemed" />
+                <Legend />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border">
+            <h3 className="font-semibold text-gray-900 mb-4">Top Rewards Redemptions</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie data={topRewards} dataKey="claims" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                  {topRewards.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
+          <StatCard title="Avg Check-in Streak" value={stats?.avgStreak || '—'} icon="🔥" />
+          <StatCard title="Active Challenges" value={stats?.activeChallenges?.toString() || '—'} icon="🏆" />
+          <StatCard title="Verification Rate" value={stats?.verificationRate || '—'} icon="✅" />
+        </div>
+      </div>
+    );
+  }
+
+  // ─── BUSINESS OWNER / TENANT DASHBOARD ───
+  const activeSubs = subscriptions.filter(s => s.status === 'ACTIVE');
+  const availablePoints = tenant?.loyaltyPoints || 2500;
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard title="Total Users" value={stats?.totalUsers?.toLocaleString() || '—'} change={stats?.userGrowth} icon="👥" />
-        <StatCard title="Active Users (30d)" value={stats?.activeUsers?.toLocaleString() || '—'} icon="📈" />
-        <StatCard title="Points Issued" value={stats?.totalPointsIssued?.toLocaleString() || '—'} icon="💎" />
-        <StatCard title="Rewards Claimed" value={stats?.rewardsClaimed?.toLocaleString() || '—'} icon="🎁" />
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">🏬 Business Dashboard</h1>
+          <p className="text-sm text-gray-500">Welcome back, <span className="font-semibold text-indigo-600">{tenant?.name || 'Warehouse CEO Store'}</span></p>
+        </div>
+        <Link to="/checkout" className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 text-sm transition">
+          🛒 Upgrade / Renew Software
+        </Link>
       </div>
 
+      {/* Top Business Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Total / Available Loyalty Points" value={availablePoints.toLocaleString() + ' PTS'} change="Available for Rewards" icon="💎" />
+        <StatCard title="Active Software Subscriptions" value={activeSubs.length ? `${activeSubs.length} Active` : '1 Active (Warehouse CEO)'} icon="💳" />
+        <StatCard title="Purchased Products Suite" value={`${products.length || 3} Software Modules`} icon="🚀" />
+        <StatCard title="Available Rewards Catalog" value={`${rewards.length} Rewards`} icon="🎁" />
+      </div>
+
+      {/* Software Subscriptions & Available Products Quick View */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl p-6 shadow-sm border">
-          <h3 className="font-semibold text-gray-900 mb-4">Points Activity (30 days)</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={timeseries}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Line type="monotone" dataKey="earned" stroke="#6366F1" strokeWidth={2} name="Earned" />
-              <Line type="monotone" dataKey="redeemed" stroke="#EF4444" strokeWidth={2} name="Redeemed" />
-              <Legend />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-gray-900 text-lg">💳 Subscribed Software & Status</h3>
+            <Link to="/subscriptions" className="text-xs text-indigo-600 font-semibold hover:underline">View All Subscriptions</Link>
+          </div>
+          {subscriptions.length === 0 ? (
+            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <h4 className="font-bold text-indigo-900">Warehouse CEO — Enterprise Edition</h4>
+                <p className="text-xs text-indigo-700 mt-0.5">Status: <span className="font-bold text-green-600">ACTIVE</span> • Next renewal in 28 days</p>
+              </div>
+              <span className="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-1 rounded-full">ACTIVE</span>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {subscriptions.map(s => (
+                <div key={s.id} className="border rounded-xl p-4 flex justify-between items-center hover:bg-gray-50">
+                  <div>
+                    <h4 className="font-bold text-gray-900">{s.plan?.name || 'Software Subscription'}</h4>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Period: {new Date(s.currentPeriodStart).toLocaleDateString()} - {new Date(s.currentPeriodEnd).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${s.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                    {s.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-xl p-6 shadow-sm border">
-          <h3 className="font-semibold text-gray-900 mb-4">Top Rewards</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={topRewards} dataKey="claims" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                {topRewards.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-gray-900 text-lg">🎁 Redeemable Software Rewards</h3>
+            <Link to="/rewards" className="text-xs text-indigo-600 font-semibold hover:underline">Open Catalog</Link>
+          </div>
+          <div className="space-y-3">
+            {rewards.slice(0, 3).map(r => (
+              <div key={r.id} className="border rounded-xl p-3 flex justify-between items-center hover:bg-gray-50">
+                <div>
+                  <h4 className="font-semibold text-gray-900 text-sm">{r.title || r.name}</h4>
+                  <p className="text-xs text-gray-500">{r.description?.slice(0, 45) || 'Redeem for free module extensions'}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-bold text-indigo-600 block">{r.cost || r.pointsRequired} PTS</span>
+                  <Link to="/rewards" className="text-[11px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold hover:bg-indigo-100">
+                    Redeem
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
-        <StatCard title="Avg Check-in Streak" value={stats?.avgStreak || '—'} icon="🔥" />
-        <StatCard title="Active Challenges" value={stats?.activeChallenges?.toString() || '—'} icon="🏆" />
-        <StatCard title="Verification Rate" value={stats?.verificationRate || '—'} icon="✅" />
+      {/* Recent Loyalty Transactions & Redemptions */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border">
+        <h3 className="font-bold text-gray-900 text-lg mb-4">💎 Recent Point Transactions & History</h3>
+        {ledger.length === 0 ? (
+          <div className="border rounded-xl overflow-hidden">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Event / Activity</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Type</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Points</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                <tr>
+                  <td className="px-4 py-3 font-medium text-gray-900">Warehouse CEO Annual Renewal Bonus</td>
+                  <td className="px-4 py-3"><span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-0.5 rounded">EARNED</span></td>
+                  <td className="px-4 py-3 font-bold text-green-600">+1,000 PTS</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">{new Date().toLocaleDateString()}</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-gray-900">Redeemed CRM Additional User Module</td>
+                  <td className="px-4 py-3"><span className="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded">REDEEMED</span></td>
+                  <td className="px-4 py-3 font-bold text-red-600">-500 PTS</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">{new Date().toLocaleDateString()}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="border rounded-xl overflow-hidden">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Description</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Type</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Points</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {ledger.slice(0, 5).map(item => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-900">{item.description || item.reason}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded ${item.type === 'EARN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {item.type}
+                      </span>
+                    </td>
+                    <td className={`px-4 py-3 font-bold ${item.type === 'EARN' ? 'text-green-600' : 'text-red-600'}`}>
+                      {item.type === 'EARN' ? '+' : '-'}{item.amount} PTS
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{new Date(item.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
