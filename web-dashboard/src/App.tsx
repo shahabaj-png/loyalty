@@ -437,14 +437,14 @@ function DashboardPage({ currentUser }: { currentUser?: any }) {
 
   // ─── BUSINESS OWNER / TENANT DASHBOARD ───
   const activeSubs = subscriptions.filter(s => s.status === 'ACTIVE');
-  const availablePoints = tenant?.loyaltyPoints || 2500;
+  const availablePoints = tenant?.loyaltyPoints || 0;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">🏬 Business Dashboard</h1>
-          <p className="text-sm text-gray-500">Welcome back, <span className="font-semibold text-indigo-600">{tenant?.name || 'Warehouse CEO Store'}</span></p>
+          <p className="text-sm text-gray-500">Welcome back, <span className="font-semibold text-indigo-600">{tenant?.name || currentUser?.email || 'Business Owner'}</span></p>
         </div>
         <Link to="/checkout" className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 text-sm transition">
           🛒 Upgrade / Renew Software
@@ -453,9 +453,9 @@ function DashboardPage({ currentUser }: { currentUser?: any }) {
 
       {/* Top Business Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total / Available Loyalty Points" value={availablePoints.toLocaleString() + ' PTS'} change="Available for Rewards" icon="💎" />
-        <StatCard title="Active Software Subscriptions" value={activeSubs.length ? `${activeSubs.length} Active` : '1 Active (Warehouse CEO)'} icon="💳" />
-        <StatCard title="Purchased Products Suite" value={`${products.length || 3} Software Modules`} icon="🚀" />
+        <StatCard title="Total / Available Loyalty Points" value={(availablePoints || 0).toLocaleString() + ' PTS'} change="Available for Rewards" icon="💎" />
+        <StatCard title="Active Software Subscriptions" value={`${activeSubs.length} Active`} icon="💳" />
+        <StatCard title="Purchased Products Suite" value={`${products.length} Software Modules`} icon="🚀" />
         <StatCard title="Available Rewards Catalog" value={`${rewards.length} Rewards`} icon="🎁" />
       </div>
 
@@ -467,12 +467,11 @@ function DashboardPage({ currentUser }: { currentUser?: any }) {
             <Link to="/subscriptions" className="text-xs text-indigo-600 font-semibold hover:underline">View All Subscriptions</Link>
           </div>
           {subscriptions.length === 0 ? (
-            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex items-center justify-between">
-              <div>
-                <h4 className="font-bold text-indigo-900">Warehouse CEO — Enterprise Edition</h4>
-                <p className="text-xs text-indigo-700 mt-0.5">Status: <span className="font-bold text-green-600">ACTIVE</span> • Next renewal in 28 days</p>
-              </div>
-              <span className="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-1 rounded-full">ACTIVE</span>
+            <div className="bg-gray-50 border rounded-xl p-6 text-center text-gray-500 text-sm">
+              <p>No active subscriptions found.</p>
+              <Link to="/checkout" className="inline-block mt-2 text-indigo-600 font-semibold hover:underline text-xs">
+                + Subscribe to Software
+              </Link>
             </div>
           ) : (
             <div className="space-y-3">
@@ -498,22 +497,28 @@ function DashboardPage({ currentUser }: { currentUser?: any }) {
             <h3 className="font-bold text-gray-900 text-lg">🎁 Redeemable Software Rewards</h3>
             <Link to="/rewards" className="text-xs text-indigo-600 font-semibold hover:underline">Open Catalog</Link>
           </div>
-          <div className="space-y-3">
-            {rewards.slice(0, 3).map(r => (
-              <div key={r.id} className="border rounded-xl p-3 flex justify-between items-center hover:bg-gray-50">
-                <div>
-                  <h4 className="font-semibold text-gray-900 text-sm">{r.title || r.name}</h4>
-                  <p className="text-xs text-gray-500">{r.description?.slice(0, 45) || 'Redeem for free module extensions'}</p>
+          {rewards.length === 0 ? (
+            <div className="bg-gray-50 border rounded-xl p-6 text-center text-gray-500 text-sm">
+              <p>No rewards currently active in catalog.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {rewards.slice(0, 3).map(r => (
+                <div key={r.id} className="border rounded-xl p-3 flex justify-between items-center hover:bg-gray-50">
+                  <div>
+                    <h4 className="font-semibold text-gray-900 text-sm">{r.title || r.name}</h4>
+                    <p className="text-xs text-gray-500">{r.description?.slice(0, 45) || 'Redeem for free module extensions'}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-bold text-indigo-600 block">{r.cost || r.pointsRequired} PTS</span>
+                    <Link to="/rewards" className="text-[11px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold hover:bg-indigo-100">
+                      Redeem
+                    </Link>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-sm font-bold text-indigo-600 block">{r.cost || r.pointsRequired} PTS</span>
-                  <Link to="/rewards" className="text-[11px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold hover:bg-indigo-100">
-                    Redeem
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -521,31 +526,8 @@ function DashboardPage({ currentUser }: { currentUser?: any }) {
       <div className="bg-white rounded-xl p-6 shadow-sm border">
         <h3 className="font-bold text-gray-900 text-lg mb-4">💎 Recent Point Transactions & History</h3>
         {ledger.length === 0 ? (
-          <div className="border rounded-xl overflow-hidden">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Event / Activity</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Type</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Points</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                <tr>
-                  <td className="px-4 py-3 font-medium text-gray-900">Warehouse CEO Annual Renewal Bonus</td>
-                  <td className="px-4 py-3"><span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-0.5 rounded">EARNED</span></td>
-                  <td className="px-4 py-3 font-bold text-green-600">+1,000 PTS</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{new Date().toLocaleDateString()}</td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-3 font-medium text-gray-900">Redeemed CRM Additional User Module</td>
-                  <td className="px-4 py-3"><span className="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded">REDEEMED</span></td>
-                  <td className="px-4 py-3 font-bold text-red-600">-500 PTS</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{new Date().toLocaleDateString()}</td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="bg-gray-50 border rounded-xl p-6 text-center text-gray-500 text-sm">
+            <p>No recent point transactions recorded.</p>
           </div>
         ) : (
           <div className="border rounded-xl overflow-hidden">
