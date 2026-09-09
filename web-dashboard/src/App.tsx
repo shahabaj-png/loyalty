@@ -123,7 +123,7 @@ function Sidebar({ currentUser }: { currentUser?: any }) {
   const location = useLocation();
   const { logout } = useAdminStore();
   const isSuperAdmin = currentUser?.email === 'admin@loyaltyplatform.com';
-  const isBusinessOwner = currentUser?.role === 'BUSINESS_OWNER' || currentUser?.role === 'ADMIN';
+  const isBusinessOwner = !isSuperAdmin && (currentUser?.role === 'BUSINESS_OWNER' || currentUser?.role === 'ADMIN');
 
   // Granular Access Control:
   // - Super Admin sees Users & Tenants, but NOT Business Profile
@@ -256,33 +256,33 @@ function CustomerPortalPage({ currentUser }: { currentUser?: any }) {
 // ─── LAYOUT ───
 function Layout({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'ADMIN' | 'CUSTOMER'>('ADMIN');
+  const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
     api.users.me().then(me => {
       if (me && me.id) {
         setCurrentUser(me);
-        if (me.role !== 'ADMIN' && me.email !== 'admin@loyaltyplatform.com') {
-          setViewMode('CUSTOMER');
-        }
       }
-    }).catch(() => {
-      // Fallback if users.me fails
-      api.users.list({ limit: 10 }).then(res => {
-        const users = res.data || res || [];
-        if (users.length > 0) {
-          const me = users[0];
-          setCurrentUser(me);
-          if (me.role !== 'ADMIN' && me.email !== 'admin@loyaltyplatform.com') {
-            setViewMode('CUSTOMER');
-          }
-        }
-      }).catch(() => {});
+    }).catch(err => {
+      console.error('Failed to resolve authenticated user profile:', err);
+    }).finally(() => {
+      setLoadingUser(false);
     });
   }, []);
 
   const isSuperAdmin = currentUser?.email === 'admin@loyaltyplatform.com';
-  const isBusinessOwner = currentUser?.role === 'BUSINESS_OWNER' || currentUser?.role === 'ADMIN';
+  const isBusinessOwner = currentUser?.role === 'BUSINESS_OWNER';
+
+  if (loadingUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm font-medium text-gray-400">Authenticating & Loading Portal...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen">
